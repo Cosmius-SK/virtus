@@ -14,10 +14,12 @@ function release() {
 const { version, name, notes } = release();
 
 /** @type {import('next').NextConfig} */
-export default {
+const config = {
   env: {
     NEXT_PUBLIC_VIRTUS_VERSION: version,
     NEXT_PUBLIC_VIRTUS_RELEASE: name,
     NEXT_PUBLIC_VIRTUS_NOTES: notes ?? '',
   },
 };
+
+export default config;

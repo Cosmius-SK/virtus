@@ -18,3 +18,9 @@ The whole of §13 steps 1–5, built endpoint-first so the plugin gets it for fr
 - Private thinking (`notes`) and finished artefacts (`artefacts`) are separate
   kinds of record from the first migration; every record carries an owner id.
 - One module decides which model provider, endpoint and key is used.
+
+Repo setup, so that a second pair of hands can run this and so a pull request
+means something: ESLint (warnings fail), CI running typecheck, lint and build on
+every PR, `.env.example`, a Node pin, `CLAUDE.md` carrying the brief's
+non-negotiables, a licence, and a SessionStart hook that installs dependencies
+in Claude Code on the web.
