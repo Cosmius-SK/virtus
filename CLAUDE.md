@@ -55,6 +55,25 @@ These come from the brief, and each one cost real time in biblio.
     before shipping, parsed at build time by `next.config.mjs`. There is no
     second copy — do not add one.
 
+## How history should read
+
+Written down because a Claude Code session cannot read past conversations —
+this file is the only thing that carries a convention from one session to the
+next, so anything learned the hard way belongs here rather than in someone's
+memory of a chat.
+
+**Every commit and pull request carries its reasoning**, and every merge commit
+summarises what sat under it. This history is read later to reconstruct why a
+thing is the way it is, so a message that only says *what* changed has failed —
+say what was true before, what forced the change, and what you rejected.
+
+**Merge commits, never squash.** Two commits that reasoned about different
+things stay separately readable, and a squash welds their messages into one.
+
+**Verify before you claim.** A commit message saying the tests pass means you
+ran them. Where a guard is the point of the change, break it on purpose, watch
+the test go red, and put it back — then say so in the message.
+
 ## Shape conventions
 
 Three shapes read their `support` list by convention. Every convention must
