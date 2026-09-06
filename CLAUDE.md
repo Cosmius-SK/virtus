@@ -13,7 +13,7 @@ Next.js 15 (App Router) · TypeScript · Tailwind · Dexie/IndexedDB ·
 npm install
 cp .env.example .env.local     # then add ANTHROPIC_API_KEY
 npm run dev
-npm run typecheck && npm run lint && npm run build
+npm run typecheck && npm run lint && npm test && npm run build
 ```
 
 ## The rules that are not negotiable
@@ -83,6 +83,23 @@ degrade to bullets rather than break a slide:
 The organisation model — seeded by an offer at the first generic result, **never
 a setup wizard** (§3) — then sync, company sign-in, sharing, `.docx`/`.pdf`, and
 the MCP server.
+
+## What is tested, and what deliberately is not
+
+`test/render.test.ts` covers one thing: that a slide shape which cannot be
+honoured **degrades to bullets rather than being faked**. That is where rule 4
+(nothing invented) is enforced in code, and it fails silently when it fails —
+the file still opens, it is just wrong.
+
+Do not add tests that call the model (a different answer every run, real money,
+and flaky) or that assert visual layout (every design tweak would break them,
+and tests people learn to ignore are worse than none). When you change the
+renderer, check the new behaviour is still caught: break the guard on purpose,
+confirm a test goes red, then put it back.
+
+One trap the tests found: **pptxgenjs numbers chart parts from a counter global
+to the module**, so the second deck rendered in one process contains
+`chart2.xml`, not `chart1.xml`. Find chart parts by prefix, never by name.
 
 ## The test that decides whether this is real
 

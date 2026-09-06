@@ -24,3 +24,8 @@ means something: ESLint (warnings fail), CI running typecheck, lint and build on
 every PR, `.env.example`, a Node pin, `CLAUDE.md` carrying the brief's
 non-negotiables, a licence, and a SessionStart hook that installs dependencies
 in Claude Code on the web.
+
+Tests, narrowly: that a chart with no real figures and a two-column slide with no
+separator both degrade to bullets rather than being faked. Each guard was broken
+on purpose to confirm the test goes red — a test that cannot fail is worse than
+none. Nothing that calls the model is tested, and nothing about visual layout.
