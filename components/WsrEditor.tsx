@@ -50,6 +50,22 @@ export function WsrEditor({
         Fix the facts here. Nothing is rendered until you say so — and an empty box stays empty.
       </p>
 
+      {wsr.reconcile.length > 0 && (
+        <div className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-amber-800/70">
+            Worth a look before you send this
+          </p>
+          <ul className="mt-1.5 space-y-1 text-sm text-amber-900">
+            {wsr.reconcile.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-amber-800/60">
+            Only you see this. None of it goes on the slide.
+          </p>
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Text label="Project ID" value={wsr.projectId} onChange={(v) => set('projectId', v)} />
         <Text label="Project name" value={wsr.projectName} onChange={(v) => set('projectName', v)} />
