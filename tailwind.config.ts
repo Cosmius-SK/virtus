@@ -5,10 +5,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: '#12161c',
-        paper: '#fbfaf7',
-        rule: '#e3e0d8',
-        accent: '#1f4f8b',
+        // The firm's own palette — see docs/brand.md. Kept in step with
+        // lib/deck/master.ts so the app and the decks it makes look related.
+        ink: '#1a1a1a',
+        paper: '#fbfaf9',
+        rule: '#dbdbdb',
+        accent: '#0f7f40',
+        accentSoft: '#cce6dd',
       },
     },
   },

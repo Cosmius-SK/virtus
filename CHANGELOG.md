@@ -3,6 +3,20 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.2.0 — The house style
+
+Decks now come out in the firm's own colours and typeface rather than a
+placeholder. §13 step 5: the seven shapes, then the brand master.
+
+- The palette and Trebuchet MS, taken from the firm's own 2Q26 earnings deck by
+  reading the colour operators and font table out of the file. `docs/brand.md`
+  records what each colour is for and why.
+- Trebuchet is set as the deck's *theme* font too, so a text box someone adds
+  by hand after opening the file inherits it instead of falling back to Calibri.
+- The chart series carries the firm's own order — green, deep blue, amber, red.
+- The web app's accent moves with it, so the tool and the decks it makes look
+  related.
+
 ## 0.1.0 — Day one
 
 The whole of §13 steps 1–5, built endpoint-first so the plugin gets it for free.

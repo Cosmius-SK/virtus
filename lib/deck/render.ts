@@ -1,7 +1,7 @@
 import 'server-only';
 import PptxGenJS from 'pptxgenjs';
 import type { Outline, OutlineSlide } from '@/lib/types';
-import { BRAND, FOOTER, GRID, MASTER } from './master';
+import { BRAND, CHART_SERIES, FOOTER, GRID, MASTER } from './master';
 
 /**
  * The approved outline becomes a real .pptx (§6).
@@ -20,6 +20,11 @@ type Slide = ReturnType<PptxGenJS['addSlide']>;
 function deck(): PptxGenJS {
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
+  // The theme fonts, not just the fonts on the text Virtus writes. A deck is
+  // meant to be edited by hand afterwards, and a text box the person adds
+  // themselves inherits these — left at the library's default it would come out
+  // Calibri on an otherwise Trebuchet deck.
+  pptx.theme = { headFontFace: BRAND.faceHeading, bodyFontFace: BRAND.face };
   pptx.defineSlideMaster({
     title: MASTER,
     background: { color: BRAND.paper },
@@ -80,7 +85,7 @@ function heading(slide: Slide, text: string): void {
     y: GRID.bodyY - 0.22,
     w: 0.9,
     h: 0,
-    line: { color: BRAND.accent, width: 2 },
+    line: { color: BRAND.accentLine, width: 2 },
   });
 }
 
@@ -135,7 +140,7 @@ function title(slide: Slide, s: OutlineSlide, subtitle: string): void {
     y: 1.6,
     w: 1.2,
     h: 0,
-    line: { color: BRAND.accent, width: 3 },
+    line: { color: BRAND.accentLine, width: 3 },
   });
 }
 
@@ -166,7 +171,7 @@ function statement(slide: Slide, s: OutlineSlide): void {
     y: 0,
     w: GRID.w,
     h: GRID.h,
-    fill: { color: BRAND.accentSoft },
+    fill: { color: BRAND.accentSofter },
   });
   slide.addText(s.claim, {
     x: GRID.marginX + 0.3,
@@ -262,7 +267,7 @@ function chart(pptx: PptxGenJS, slide: Slide, s: OutlineSlide): void {
       w: GRID.bodyW,
       h: GRID.bodyH,
       barDir: 'col',
-      chartColors: [BRAND.accent],
+      chartColors: [...CHART_SERIES],
       showLegend: false,
       showValue: true,
       dataLabelFontFace: BRAND.face,
