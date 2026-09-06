@@ -16,11 +16,13 @@ import { clearDraft, loadDraft, queueDraftSave } from '@/lib/drafts';
  * press and does not offer a worse button beside it, because the easier path is
  * the one people take and then judge the product by.
  */
+export type Format = 'deck' | 'wsr';
+
 export function Capture({
-  onStructure,
+  onGenerate,
   busy,
 }: {
-  onStructure: (note: string) => void;
+  onGenerate: (note: string, format: Format) => void;
   busy: boolean;
 }) {
   const [text, setText] = useState('');
@@ -66,17 +68,30 @@ export function Capture({
           Dictating is faster: <Key>Windows</Key> + <Key>H</Key>, the mic key on a Mac keyboard,
           or the mic on your phone&rsquo;s keyboard.
         </p>
-        <button
-          type="button"
-          disabled={busy || text.trim().length < 20}
-          onClick={() => {
-            void clearDraft();
-            onStructure(text);
-          }}
-          className="shrink-0 rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-ink/25"
-        >
-          {busy ? 'Reading…' : 'Make the argument'}
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            disabled={busy || text.trim().length < 20}
+            onClick={() => {
+              void clearDraft();
+              onGenerate(text, 'wsr');
+            }}
+            className="rounded-md border border-rule bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Weekly status
+          </button>
+          <button
+            type="button"
+            disabled={busy || text.trim().length < 20}
+            onClick={() => {
+              void clearDraft();
+              onGenerate(text, 'deck');
+            }}
+            className="rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-ink/25"
+          >
+            {busy ? 'Reading…' : 'Make a deck'}
+          </button>
+        </div>
       </div>
     </section>
   );

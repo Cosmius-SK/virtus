@@ -63,3 +63,39 @@ export const OutlineSchema = z.object({
 
 export type OutlineSlide = z.infer<typeof OutlineSlideSchema>;
 export type Outline = z.infer<typeof OutlineSchema>;
+
+/**
+ * A weekly status one-pager: one slide, dense, the thing that actually gets
+ * circulated. Modelled on the template the firm already uses.
+ *
+ * This is a FORMAT, not a shape. Shapes are the vocabulary a deck is written
+ * in and stay at seven; formats are the sentences, and there should be many.
+ * A format needs no new shapes.
+ */
+export const WsrRiskSchema = z.object({
+  risk: z.string().describe('The risk or challenge, in their words.'),
+  impact: z.string().describe('What it does to the project if it lands.'),
+  raised: z.string().describe('When it was raised, or an empty string.'),
+  owner: z.string().describe('Who owns it, or an empty string.'),
+  mitigation: z.string().describe('The plan, or an empty string.'),
+  closure: z.string().describe('Expected closure, or an empty string.'),
+});
+
+export const WsrSchema = z.object({
+  title: z.string().describe('The programme or workstream this reports on.'),
+  projectId: z.string().describe('Project id if the note gives one, else "NA".'),
+  projectName: z.string().describe('Project name if given, else an empty string.'),
+  startDate: z.string().describe('Start date as written, or an empty string.'),
+  endDate: z.string().describe('End date as written, or an empty string.'),
+  status: z
+    .enum(['On Track', 'In Progress', 'Completed', 'At Risk', 'Delayed'])
+    .describe('Overall status. Only what the note supports.'),
+  executiveSummary: z.string().describe('Two or three sentences. What a reader must know.'),
+  keyDecisions: z.array(z.string()).describe('Decisions taken or needed.'),
+  accomplishments: z.array(z.string()).describe('What actually moved this period.'),
+  upcoming: z.array(z.string()).describe('What is committed next.'),
+  risks: z.array(WsrRiskSchema).describe('Risks and challenges.'),
+});
+
+export type WsrRisk = z.infer<typeof WsrRiskSchema>;
+export type Wsr = z.infer<typeof WsrSchema>;
