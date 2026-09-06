@@ -230,12 +230,13 @@ export async function renderWsr(wsr: Wsr): Promise<Buffer> {
     color: BRAND.muted,
     valign: 'middle',
   });
-  let lx = W - M - 4.2;
+  const chipW = 0.72;
+  let lx = W - M - Object.keys(STATUS).length * (chipW + 0.04);
   for (const [name, colour] of Object.entries(STATUS)) {
     slide.addText(name, {
       x: lx,
       y: H - 0.34,
-      w: 0.82,
+      w: chipW,
       h: 0.22,
       fill: { color: colour },
       color: 'FFFFFF',
@@ -244,7 +245,7 @@ export async function renderWsr(wsr: Wsr): Promise<Buffer> {
       align: 'center',
       valign: 'middle',
     });
-    lx += 0.86;
+    lx += chipW + 0.04;
   }
 
   return (await pptx.write({ outputType: 'nodebuffer' })) as Buffer;

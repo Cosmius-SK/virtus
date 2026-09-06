@@ -67,11 +67,13 @@ export const FOOTER = process.env.VIRTUS_DECK_FOOTER ?? 'Internal';
  * the rest of a deck rather than looking imported.
  */
 export const STATUS = {
+  'Not Started': '6D6D6D',
   'On Track': '0F7F40',
   'In Progress': '008555',
-  Completed: '00497F',
   'At Risk': 'FBC150',
   Delayed: 'EE2724',
+  Completed: '00497F',
+  Closed: '1A1A1A',
 } as const;
 
 export type StatusName = keyof typeof STATUS;

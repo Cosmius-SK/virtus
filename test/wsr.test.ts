@@ -24,6 +24,7 @@ const BARE: Wsr = {
   accomplishments: [],
   upcoming: [],
   risks: [],
+  reconcile: [],
 };
 
 async function open(wsr: Wsr): Promise<string[]> {
@@ -53,11 +54,13 @@ const CHROME = new Set([
   'Start Date',
   'End Date',
   'Status',
+  'Not Started',
   'On Track',
   'In Progress',
-  'Completed',
   'At Risk',
   'Delayed',
+  'Completed',
+  'Closed',
 ]);
 
 function suppliedBy(wsr: Wsr): Set<string> {
@@ -116,6 +119,27 @@ describe('an empty field stays empty', () => {
     const supplied = suppliedBy(wsr);
     const invented = (await open(wsr)).filter((t) => !CHROME.has(t) && !supplied.has(t));
     expect(invented).toEqual([]);
+  });
+});
+
+describe('a doubt is for the author, never the reader', () => {
+  it('keeps what does not add up off the slide entirely', async () => {
+    const text = await open({
+      ...BARE,
+      status: 'Closed',
+      executiveSummary: 'Waves 1 to 3 are done.',
+      reconcile: [
+        "The note marks the status as Closed while Wave 4 work and open risks remain.",
+        'Wave 3 has a device count but no VM count.',
+      ],
+    });
+
+    // Noticing the contradiction is right. Printing it in an executive summary
+    // a director reads is not — it makes the author look unsure of their own
+    // report. The flag belongs on the editing screen and nowhere else.
+    expect(text.join(' ')).not.toContain('Wave 4 work and open risks remain');
+    expect(text.join(' ')).not.toContain('no VM count');
+    expect(text).toContain('Waves 1 to 3 are done.');
   });
 });
 

@@ -3,6 +3,25 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.3.1 — What the first real note taught it
+
+A real weekly note went through the one-pager for the first time. The reading
+step held up — it added the wave counts correctly and kept every number and
+spelling as written — and it found three things the plan had not.
+
+- **A doubt is for the author, never the reader.** The note said the programme
+  was Closed while describing a wave still blocked, and the model said so — in
+  the executive summary, which a director reads. Noticing was right; the place
+  was wrong. Contradictions now have their own field, shown as a flag on the
+  editing screen and never rendered onto a slide.
+- **Impact is no longer inferred.** Two risks arrived with a consequence the
+  note never stated. Reasonable inferences, but on a slide they read as the
+  author's assertion. The field stays empty unless the note says otherwise.
+- **Dates go in date columns.** "expect to close by 10-Sep" became the whole
+  cell; it is now "10-Sep". A column is not a sentence.
+- **Closed and Not Started** are statuses. The first note used one of them and
+  the list did not have it.
+
 ## 0.3.0 — The weekly status one-pager
 
 The first *format*. A format is not a shape: shapes are the vocabulary a deck is

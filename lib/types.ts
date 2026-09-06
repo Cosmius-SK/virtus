@@ -88,13 +88,35 @@ export const WsrSchema = z.object({
   startDate: z.string().describe('Start date as written, or an empty string.'),
   endDate: z.string().describe('End date as written, or an empty string.'),
   status: z
-    .enum(['On Track', 'In Progress', 'Completed', 'At Risk', 'Delayed'])
+    .enum([
+      'Not Started',
+      'On Track',
+      'In Progress',
+      'At Risk',
+      'Delayed',
+      'Completed',
+      'Closed',
+    ])
     .describe('Overall status. Only what the note supports.'),
   executiveSummary: z.string().describe('Two or three sentences. What a reader must know.'),
   keyDecisions: z.array(z.string()).describe('Decisions taken or needed.'),
   accomplishments: z.array(z.string()).describe('What actually moved this period.'),
   upcoming: z.array(z.string()).describe('What is committed next.'),
   risks: z.array(WsrRiskSchema).describe('Risks and challenges.'),
+  /**
+   * Things that do not add up, addressed to the author and never to the reader.
+   *
+   * The first real note said the programme was Closed while describing a wave
+   * still blocked. Noticing that is exactly right; saying it in the executive
+   * summary is not — that summary is read by a director, and a note to self in
+   * it makes the author look unsure of their own report. So doubts get their
+   * own field, shown on the editing screen and never rendered onto a slide.
+   *
+   * This is §11's line: it notices, it does not manage.
+   */
+  reconcile: z
+    .array(z.string())
+    .describe('Contradictions in the note, addressed to its author. Never rendered.'),
 });
 
 export type WsrRisk = z.infer<typeof WsrRiskSchema>;
