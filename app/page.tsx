@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Capture } from '@/components/Capture';
+import { Capture, type Format } from '@/components/Capture';
 import { OutlineEditor } from '@/components/OutlineEditor';
+import { WsrEditor } from '@/components/WsrEditor';
 import { db, newId } from '@/lib/db';
 import { ownerId } from '@/lib/owner';
-import type { Outline, Structure } from '@/lib/types';
+import type { Outline, Structure, Wsr } from '@/lib/types';
 
-type Stage = 'capture' | 'outline';
+type Stage = 'capture' | 'outline' | 'wsr';
 
 /**
  * Day one, end to end (§13): a note, one pass returning structure, the argument
@@ -23,28 +24,40 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const [structure, setStructure] = useState<Structure | null>(null);
   const [outline, setOutline] = useState<Outline | null>(null);
+  const [wsr, setWsr] = useState<Wsr | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
 
-  async function makeArgument(note: string) {
+  /** Keep the note whatever format was asked for — it is private thinking (§4). */
+  async function keepNote(note: string, structure?: Structure): Promise<string> {
+    const id = newId();
+    const now = Date.now();
+    await db.notes.put({
+      id,
+      ownerId: ownerId(),
+      text: note,
+      structure,
+      createdAt: now,
+      updatedAt: now,
+    });
+    setNoteId(id);
+    return id;
+  }
+
+  async function generate(note: string, format: Format) {
     setBusy(true);
     setError(null);
     try {
+      if (format === 'wsr') {
+        const w = await post<{ wsr: Wsr }>('/api/wsr', { note });
+        await keepNote(note);
+        setWsr(w.wsr);
+        setStage('wsr');
+        return;
+      }
+
       const s = await post<{ structure: Structure }>('/api/structure', { note });
       const o = await post<{ outline: Outline }>('/api/outline', { structure: s.structure, ask: '' });
-
-      // Private thinking, kept apart from the finished artefact (§4).
-      const id = newId();
-      const now = Date.now();
-      await db.notes.put({
-        id,
-        ownerId: ownerId(),
-        text: note,
-        structure: s.structure,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      setNoteId(id);
+      await keepNote(note, s.structure);
       setStructure(s.structure);
       setOutline(o.outline);
       setStage('outline');
@@ -56,14 +69,15 @@ export default function Page() {
   }
 
   async function render() {
-    if (!outline) return;
+    const wsrMode = stage === 'wsr';
+    if (wsrMode ? !wsr : !outline) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch('/api/deck', {
+      const res = await fetch(wsrMode ? '/api/deck/wsr' : '/api/deck', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ outline }),
+        body: JSON.stringify(wsrMode ? { wsr } : { outline }),
       });
       if (!res.ok) throw new Error(await errorFrom(res));
 
@@ -81,9 +95,10 @@ export default function Page() {
         id: newId(),
         ownerId: ownerId(),
         noteId: noteId ?? '',
-        kind: 'deck',
-        title: outline.title,
-        outline,
+        kind: wsrMode ? 'wsr' : 'deck',
+        title: wsrMode ? wsr!.title : outline!.title,
+        outline: wsrMode ? undefined : outline!,
+        wsr: wsrMode ? wsr! : undefined,
         visibility: 'private',
         createdAt: now,
         updatedAt: now,
@@ -97,9 +112,17 @@ export default function Page() {
 
   return (
     <main>
-      {stage === 'capture' || !outline ? (
-        <Capture onStructure={makeArgument} busy={busy} />
-      ) : (
+      {stage === 'capture' ? (
+        <Capture onGenerate={generate} busy={busy} />
+      ) : stage === 'wsr' && wsr ? (
+        <WsrEditor
+          wsr={wsr}
+          onChange={setWsr}
+          onRender={render}
+          busy={busy}
+          onBack={() => setStage('capture')}
+        />
+      ) : outline ? (
         <>
           <OutlineEditor
             outline={outline}
@@ -110,6 +133,8 @@ export default function Page() {
           />
           {structure && <WhatYouSaid structure={structure} />}
         </>
+      ) : (
+        <Capture onGenerate={generate} busy={busy} />
       )}
 
       {error && (

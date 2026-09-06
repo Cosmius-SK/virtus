@@ -3,6 +3,23 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.3.0 — The weekly status one-pager
+
+The first *format*. A format is not a shape: shapes are the vocabulary a deck is
+written in and stay at seven, formats are the sentences and there should be
+many. Adding a hundred formats needs no new shapes.
+
+- **Weekly status report** — one dense slide, laid out in the regions the firm's
+  own template uses: a banner, the project row with a status chip, an executive
+  summary, key decisions, accomplishments beside upcoming activities, and a risk
+  table with owners and closure dates.
+- A choice on the capture screen: a deck, or a weekly status.
+- The fields are edited before anything is rendered, the same way an outline is
+  (§8.2) — correcting a laid-out table is fighting it; correcting a list is not.
+- Every section is drawn even when empty. A status report with an empty risk
+  table is a statement — "nothing raised" — and dropping the section would turn
+  that statement into an absence nobody notices.
+
 ## 0.2.0 — The house style
 
 Decks now come out in the firm's own colours and typeface rather than a

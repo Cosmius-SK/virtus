@@ -59,3 +59,20 @@ export const GRID = {
 } as const;
 
 export const FOOTER = process.env.VIRTUS_DECK_FOOTER ?? 'Internal';
+
+/**
+ * Status chips on a weekly status one-pager. Green reads as fine, amber as
+ * watch it, red as it is not fine — the only convention nobody has to be
+ * taught. Taken from the firm's own chart series so a status slide sits beside
+ * the rest of a deck rather than looking imported.
+ */
+export const STATUS = {
+  'On Track': '0F7F40',
+  'In Progress': '008555',
+  Completed: '00497F',
+  'At Risk': 'FBC150',
+  Delayed: 'EE2724',
+} as const;
+
+export type StatusName = keyof typeof STATUS;
+export const STATUS_NAMES = Object.keys(STATUS) as StatusName[];
