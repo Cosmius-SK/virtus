@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 import { renderFormat } from '@/lib/deck/format';
+import { renderDocx } from '@/lib/docs/format';
 import { FORMATS } from '@/lib/formats/registry';
 import { schemaFor } from '@/lib/formats/schema';
 import { systemFor } from '@/lib/formats/prompt';
@@ -92,6 +93,7 @@ describe.each(FORMATS.map((f) => [f.id, f] as const))('%s', (id, format) => {
   });
 
   it('renders an empty document without dropping a section', async () => {
+    if (!format.outputs.includes('pptx')) return;
     const text = await slideText(format, empty(format));
     for (const s of format.sections) {
       if (s.kind === 'fields') continue; // its labels are the column headers
@@ -99,7 +101,33 @@ describe.each(FORMATS.map((f) => [f.id, f] as const))('%s', (id, format) => {
     }
   });
 
+  it('declares at least one output and can produce every one it declares', async () => {
+    expect(format.outputs.length).toBeGreaterThan(0);
+    for (const out of format.outputs) {
+      const buffer =
+        out === 'pptx'
+          ? await renderFormat(format, filled(format))
+          : await renderDocx(format, filled(format));
+      // Both are zip containers. A truncated one is the failure that matters:
+      // it opens as a corrupt-file dialog in front of whoever was shown it.
+      expect(buffer.length, `${id} ${out}`).toBeGreaterThan(2_000);
+      expect(buffer.subarray(0, 2).toString('latin1'), `${id} ${out}`).toBe('PK');
+    }
+  });
+
+  it('renders as Word without dropping a section, where it offers Word', async () => {
+    if (!format.outputs.includes('docx')) return;
+    const zip = await JSZip.loadAsync(await renderDocx(format, filled(format)));
+    const xml = await zip.file('word/document.xml')!.async('string');
+    for (const s of format.sections) {
+      if (s.kind === 'fields') continue;
+      expect(xml, `${id} dropped ${s.id} from the Word version`).toContain(s.label);
+    }
+    expect(xml).not.toContain('A doubt');
+  });
+
   it('renders a filled document and keeps the doubt off the slide', async () => {
+    if (!format.outputs.includes('pptx')) return;
     const doc = filled(format);
     const text = await slideText(format, doc);
     expect(text).toContain('A document');

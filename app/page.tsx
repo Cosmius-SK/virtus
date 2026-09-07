@@ -22,10 +22,11 @@ const DECK: FormatSummary = {
   id: 'deck',
   name: 'Full deck',
   description: 'Several slides — the argument first, as an outline you approve before anything is drawn.',
+  outputs: ['pptx'],
 };
 
 const CHOICES: FormatSummary[] = [
-  ...FORMATS.map(({ id, name, description }) => ({ id, name, description })),
+  ...FORMATS.map(({ id, name, description, outputs }) => ({ id, name, description, outputs })),
   DECK,
 ];
 
@@ -118,12 +119,16 @@ export default function Page() {
     }
   }
 
-  async function render() {
+  async function render(as: 'pptx' | 'docx' = 'pptx') {
     setBusyId('render');
     setProblem(null);
     try {
       const isDoc = stage === 'doc';
-      const url = isDoc ? `/api/deck/format/${formatId}` : '/api/deck';
+      const url = isDoc
+        ? as === 'docx'
+          ? `/api/doc/format/${formatId}`
+          : `/api/deck/format/${formatId}`
+        : '/api/deck';
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,7 +141,7 @@ export default function Page() {
       const href = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = href;
-      a.download = filenameFrom(res) ?? 'virtus.pptx';
+      a.download = filenameFrom(res) ?? `virtus.${as}`;
       a.click();
       URL.revokeObjectURL(href);
 
@@ -239,7 +244,7 @@ export default function Page() {
 
       {problem && stage !== 'capture' && (
         <div className="mx-auto max-w-3xl px-6 pb-6">
-          <Problem problem={problem} onRetry={render} />
+          <Problem problem={problem} onRetry={() => render()} />
         </div>
       )}
 

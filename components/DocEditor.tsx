@@ -22,7 +22,7 @@ export function DocEditor({
   format: FormatDef;
   doc: FormatDoc;
   onChange: (next: FormatDoc) => void;
-  onRender: () => void;
+  onRender: (as: 'pptx' | 'docx') => void;
   busy: boolean;
   onBack: () => void;
 }) {
@@ -211,15 +211,22 @@ export function DocEditor({
         );
       })}
 
-      <div className="mt-8 flex items-center justify-end gap-4">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onRender}
-          className="rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-ink/25"
-        >
-          {busy ? 'Rendering…' : `Download the ${format.name.toLowerCase()}`}
-        </button>
+      <div className="mt-8 flex items-center justify-end gap-2">
+        {format.outputs.map((out, i) => (
+          <button
+            key={out}
+            type="button"
+            disabled={busy}
+            onClick={() => onRender(out)}
+            className={
+              i === 0
+                ? 'rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-ink/25'
+                : 'rounded-md border border-rule bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40'
+            }
+          >
+            {busy ? 'Making…' : out === 'pptx' ? 'Download the slide' : 'Download as Word'}
+          </button>
+        ))}
       </div>
     </section>
   );
