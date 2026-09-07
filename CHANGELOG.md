@@ -3,6 +3,21 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.7.0 — Built for the room it will be shown in
+
+- **Nothing on screen is ever a stack trace.** Every failure becomes a sentence
+  saying what happened and what to do, with a Try again button only where trying
+  again could help. A message Virtus did not write itself never reaches the
+  screen.
+- **The wait is legible.** Elapsed seconds, what is being done, and a bar that
+  approaches full without pretending to know when it will finish. After fifteen
+  seconds it says so, which turns a worrying pause into an expected one.
+- **Requests are bounded.** Ninety seconds, then a sentence — a spinner that
+  turns forever leaves nothing to say to the room.
+- **Four sample notes** to click, written the way real ones arrive: out of
+  order, half-punctuated, with the important thing last.
+- The note is never lost. Every failure message says so.
+
 ## 0.6.0 — What it costs, measured rather than claimed
 
 - **A meter.** Every document made is recorded locally with its real token

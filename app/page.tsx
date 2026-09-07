@@ -8,7 +8,11 @@ import { OutlineEditor } from '@/components/OutlineEditor';
 import { db, newId } from '@/lib/db';
 import { FORMATS, formatById } from '@/lib/formats/registry';
 import type { FormatDoc } from '@/lib/formats/types';
+import { Problem } from '@/components/Problem';
+import { Working } from '@/components/Working';
 import { clearDraft } from '@/lib/drafts';
+import { friendly, type Friendly } from '@/lib/friendly';
+import { SAMPLES } from '@/lib/samples';
 import { recordRun } from '@/lib/meter';
 import { ownerId } from '@/lib/owner';
 import type { Outline, Structure } from '@/lib/types';
@@ -31,7 +35,7 @@ export default function Page() {
   const [stage, setStage] = useState<Stage>('capture');
   const [note, setNote] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [problem, setProblem] = useState<Friendly | null>(null);
 
   const [formatId, setFormatId] = useState<string | null>(null);
   const [doc, setDoc] = useState<FormatDoc | null>(null);
@@ -39,6 +43,8 @@ export default function Page() {
   const [outline, setOutline] = useState<Outline | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
   const [took, setTook] = useState<number | null>(null);
+  /** What to repeat when someone presses Try again. */
+  const [lastPick, setLastPick] = useState<string | null>(null);
 
   const format = formatId ? formatById(formatId) : undefined;
 
@@ -59,11 +65,12 @@ export default function Page() {
 
   async function pick(id: string) {
     if (note.trim().length < 20) {
-      setError('Put a few sentences in the box first.');
+      setProblem({ message: 'Put a few sentences in the box first.', retry: false });
       return;
     }
     setBusyId(id);
-    setError(null);
+    setLastPick(id);
+    setProblem(null);
     const started = Date.now();
     try {
       const name = CHOICES.find((c) => c.id === id)?.name ?? id;
@@ -105,7 +112,7 @@ export default function Page() {
       setTook(Date.now() - started);
       void clearDraft();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something failed.');
+      setProblem(friendly(err));
     } finally {
       setBusyId(null);
     }
@@ -113,7 +120,7 @@ export default function Page() {
 
   async function render() {
     setBusyId('render');
-    setError(null);
+    setProblem(null);
     try {
       const isDoc = stage === 'doc';
       const url = isDoc ? `/api/deck/format/${formatId}` : '/api/deck';
@@ -121,6 +128,7 @@ export default function Page() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isDoc ? { doc } : { outline }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!res.ok) throw new Error(await errorFrom(res));
 
@@ -147,7 +155,7 @@ export default function Page() {
         updatedAt: now,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'The file could not be made.');
+      setProblem(friendly(err));
     } finally {
       setBusyId(null);
     }
@@ -165,6 +173,34 @@ export default function Page() {
           </header>
 
           <Capture text={note} onChange={setNote} disabled={busyId !== null} />
+
+          {!note.trim() && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-ink/40">Or try one:</span>
+              {SAMPLES.map((sample) => (
+                <button
+                  key={sample.label}
+                  type="button"
+                  onClick={() => setNote(sample.note)}
+                  className="rounded-full border border-rule bg-white px-3 py-1 text-xs text-ink/70 transition hover:border-accent hover:text-accent"
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {busyId && (
+            <div className="mt-6">
+              <Working what={CHOICES.find((c) => c.id === busyId)?.name ?? 'your document'} />
+            </div>
+          )}
+
+          {problem && (
+            <div className="mt-6">
+              <Problem problem={problem} onRetry={() => busyId === null && lastPick && pick(lastPick)} />
+            </div>
+          )}
 
           <div className="mt-8">
             <FormatPicker
@@ -201,10 +237,10 @@ export default function Page() {
         </>
       )}
 
-      {error && (
-        <p className="mx-auto max-w-3xl px-6 pb-6 text-sm text-red-700" role="alert">
-          {error}
-        </p>
+      {problem && stage !== 'capture' && (
+        <div className="mx-auto max-w-3xl px-6 pb-6">
+          <Problem problem={problem} onRetry={render} />
+        </div>
       )}
 
       <Footer took={took} />
@@ -270,11 +306,18 @@ interface Usage {
   outputTokens: number;
 }
 
+/**
+ * Bounded, because a request that never returns is worse than one that fails —
+ * there is nothing to say to the room while a spinner turns forever.
+ */
+const TIMEOUT_MS = 90_000;
+
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(await errorFrom(res));
   return (await res.json()) as T;
