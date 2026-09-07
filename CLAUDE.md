@@ -31,6 +31,13 @@ These come from the brief, and each one cost real time in biblio.
    structure rather than correct a result in adjectives. This is why there is no
    "try again" button on the outline screen, and why adding one would be a
    regression rather than a feature.
+
+   The section rewrite in `DocEditor` is not that button, and the difference is
+   worth holding on to: it acts on a **named part** and leaves every other part
+   as approved, and it rewrites from the original input, so pressing it
+   repeatedly gets different sentences and never new facts. A rewrite that took
+   the whole document and an adjective would be the forbidden thing — which is
+   why the whole-document one says out loud what it costs.
 4. **Nothing invented** (§8.5). Summaries, entities and structure must be
    faithful to what the person actually wrote. A work tool that embellishes is
    worse than none: its output will be sent to a client. If a note is thin, the
@@ -40,7 +47,16 @@ These come from the brief, and each one cost real time in biblio.
    *choosing a template*, and from there the path is identical. If free-form
    ever grows its own generator, the product has two products in it and one of
    them is untested.
-6. **Seven slide shapes, and no more** (§6). `title` `contents` `statement`
+6. **A template built in the admin space is the same thing as one in the
+   registry.** It is a `FormatDef`, it goes through the same engine, and no
+   renderer, prompt or screen may be able to tell them apart — the moment one
+   can, every one of them grows a branch and the twenty-seventh format costs
+   what the first did. It lives on the device, so it **travels with the
+   request** (§7) exactly as the organisation model does; the endpoints stay
+   stateless and moving the storage later is a change of source, not of shape.
+   Anything not written in the registry is validated before a prompt is built
+   from it.
+7. **Seven slide shapes, and no more** (§6). `title` `contents` `statement`
    `bullets` `two-column` `chart` `next-steps`. An eighth is always tempting and
    is never why someone adopts or drops this.
 
@@ -48,20 +64,20 @@ These come from the brief, and each one cost real time in biblio.
    is written in and stay at seven. Formats are the sentences: there should be
    many, and adding one adds no shapes. Conflating them is what makes generated
    documents feel like a straitjacket.
-7. **One module decides where the text goes** (§5). Every model call goes
+8. **One module decides where the text goes** (§5). Every model call goes
    through `lib/ai/provider.ts`. Never construct an Anthropic client anywhere
    else, and never fall back to a default provider when the configured one
    fails — falling back is how internal documents reach somewhere nobody
    approved.
-8. **Private thinking and finished artefacts stay separate** (§4). `db.notes`
+9. **Private thinking and finished artefacts stay separate** (§4). `db.notes`
    and `db.artefacts` are different tables on purpose. Sharing, retention and
    team libraries will land on `artefacts` alone. Do not merge them.
-9. **Every record carries an `ownerId`, read from a session** (§4). Never assume
+10. **Every record carries an `ownerId`, read from a session** (§4). Never assume
    there is one user, even while there is.
-10. **No microphone** (lesson 12.1). biblio built one on the browser's speech API
+11. **No microphone** (lesson 12.1). biblio built one on the browser's speech API
    and removed it after a week. Point at the device's own dictation and do not
    offer a worse button beside it.
-11. **The changelog is the single source of release notes** (§8.7). Written
+12. **The changelog is the single source of release notes** (§8.7). Written
     before shipping, parsed at build time by `next.config.mjs`. There is no
     second copy — do not add one.
 
@@ -125,7 +141,12 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `lib/deck/format.ts` | Sections → slides. One-pager and pack. |
 | `lib/docs/format.ts` | Sections → Word. |
 | `lib/pdf/format.ts` | Sections → PDF. |
-| `lib/deck/master.ts` | The **client's** house palette and typeface — what goes *into* a document. |
+| `lib/deck/master.ts` | The **client's** palette and typeface — what goes *into* a document. Request-scoped, so an uploaded house style cannot leak between two renders in flight. |
+| `lib/deck/status.ts` | The status vocabulary and its colours. Its own file so the editor can read the names without pulling the palette into the browser — and because a house style must **never** change these. |
+| `lib/house.ts`, `app/api/house` | Reading a theme out of an uploaded .pptx/.potx/.docx/.dotx. Six accents and two typefaces. Never layouts, masters or logos. |
+| `lib/admin/`, `components/admin/`, `app/admin` | The admin space: templates built here, the broadcast strip, the house style. |
+| `lib/formats/def-schema.ts` | A format definition, validated. Applies to anything not written in the registry. |
+| `lib/formats/resolve.ts` | Which template a request is about — registry first, then whatever it carried. |
 | `lib/brand.ts` | **Virtus's own** palette — what the product itself looks like. Never the same thing as the line above, and never merged with it. |
 | `components/Logo.tsx`, `app/icon.svg` | The mark. One path, shared by both, so the tab and the header cannot diverge. |
 | `components/Shell.tsx` | Header, navigation and the classification line. Every page is inside it. |
@@ -138,6 +159,7 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `lib/db.ts` | The list of record types lives here and **only** here (lesson 12.5). |
 | `app/api/format/[id]` | Note → fields. The core pass, for every format. |
 | `app/api/compose` | The conversation behind free-form mode. It proposes a template and a plan; it never writes the document. |
+| `app/api/rewrite/[id]` | One section, rewritten from the same input. Never the whole document. |
 | `app/api/{deck,doc,pdf}/format/[id]` | Approved fields → a file. No model call. |
 
 ## Not built yet
@@ -162,6 +184,11 @@ still opens, it is just wrong, and it has already been sent.
   input.
 - `test/render.test.ts` covers the seven shapes degrading rather than being
   faked.
+- `test/admin.test.ts` covers what the admin space lets somebody hand the
+  engine: a template definition that did not come from the registry, and a
+  palette that did not come from `master.ts`. Both fail silently — a malformed
+  template still produces a file and an unapplied house style still produces a
+  file — so every assertion there is paired.
 - `test/org.test.ts`, `test/friendly.test.ts`, `test/pricing.test.ts`,
   `test/gate.test.ts` cover their own small rules.
 
