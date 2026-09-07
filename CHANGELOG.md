@@ -3,7 +3,16 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
-## 0.13.1 — It works on a phone
+## 0.13.1 — It works on a phone, and the rewrite can be found
+
+The per-section rewrite was reported as missing. It was not missing — six of
+them were on the screen. Each was a 14px pale grey glyph pinned to the far right
+of a full-width row, hundreds of pixels from the heading it acted on, with no
+word beside it. An unlabelled icon nobody has seen before, in the lightest
+colour on the page, detached from its subject, is not a control. It is now a
+labelled pill in the accent colour, sitting immediately after the section
+heading, and the instruction above the document shows the same pill rather than
+describing it.
 
 There was no `<meta name="viewport">`. Without it a phone lays the page out at a
 notional desktop width and scales the result down, so the header ran off the

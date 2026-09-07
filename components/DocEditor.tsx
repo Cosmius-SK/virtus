@@ -62,10 +62,13 @@ export function DocEditor({
         className="mt-1 w-full bg-transparent text-[24px] font-semibold tracking-tight text-ink outline-none"
       />
       <p className="mt-1.5 text-[13px] leading-relaxed text-ink60">
-        Review and correct the content. Edit anything directly, or use{' '}
-        <Star className="mx-0.5 inline h-3 w-3 -translate-y-px text-accent" /> to have a section
-        rewritten. Nothing is produced until you choose an output, and a field left blank stays
-        blank.
+        Review and correct the content. Type over anything, or press{' '}
+        <span className="mx-0.5 inline-flex translate-y-px items-center gap-1 rounded-full border border-accent/30 bg-accentTint px-1.5 py-0.5 text-[10px] font-medium text-accentDark">
+          <Star className="h-2.5 w-2.5" />
+          Rewrite
+        </span>{' '}
+        beside a section to have that section written again. Nothing is produced until you choose
+        an output, and a field left blank stays blank.
       </p>
 
       {doc.reconcile.length > 0 && (
@@ -300,7 +303,7 @@ function Block({
 
   return (
     <div className="mt-5">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
+      <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
           {label}
         </span>
@@ -309,11 +312,16 @@ function Block({
             type="button"
             disabled={busy}
             onClick={() => setAsking((v) => !v)}
-            title={`Rewrite ${section.label}`}
+            aria-expanded={asking}
             aria-label={`Rewrite ${section.label}`}
-            className="shrink-0 rounded p-1 text-ink40 transition hover:bg-accentTint hover:text-accent disabled:opacity-30"
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition disabled:opacity-30 ${
+              asking || rewriting
+                ? 'border-accent bg-accent text-white'
+                : 'border-accent/30 bg-accentTint text-accentDark hover:border-accent hover:bg-accent hover:text-white'
+            }`}
           >
-            <Star className={`h-3.5 w-3.5 ${rewriting ? 'animate-pulse text-accent' : ''}`} />
+            <Star className={`h-3 w-3 ${rewriting ? 'animate-pulse' : ''}`} />
+            {rewriting ? 'Rewriting…' : 'Rewrite'}
           </button>
         )}
       </div>
@@ -329,17 +337,17 @@ function Block({
               if (e.key === 'Enter') go();
               if (e.key === 'Escape') setAsking(false);
             }}
-            placeholder="What should change? Leave blank for another attempt."
+            placeholder="What should change? (optional)"
             className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-ink40"
           />
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
             <button
               type="button"
               disabled={busy}
               onClick={go}
-              className="rounded bg-accent px-3 py-1 text-[12px] font-medium text-white transition hover:bg-accentDark disabled:opacity-40"
+              className="rounded bg-accent px-3.5 py-1.5 text-[12px] font-medium text-white transition hover:bg-accentDark disabled:opacity-40"
             >
-              Rewrite
+              Rewrite this section
             </button>
             <button
               type="button"
@@ -348,14 +356,17 @@ function Block({
             >
               Cancel
             </button>
-            <span className="text-[11px] text-ink40">
-              Only this section changes. It cannot add anything your input did not say.
+            <span className="w-full text-[11px] leading-relaxed text-ink60 sm:w-auto sm:flex-1">
+              Only this section changes, and only from what you already put in. Leave the box
+              empty for another attempt at the same facts.
             </span>
           </div>
         </div>
       )}
 
-      <div className={rewriting ? 'pointer-events-none opacity-40' : undefined}>{children}</div>
+      <div className={rewriting ? 'pointer-events-none animate-pulse opacity-50' : undefined}>
+        {children}
+      </div>
     </div>
   );
 }
