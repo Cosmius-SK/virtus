@@ -1,6 +1,6 @@
 {
   "name": "virtus",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "engines": {
     "node": ">=22.0.0"
@@ -19,6 +19,7 @@
     "dexie-react-hooks": "^1.1.7",
     "docx": "^9.7.1",
     "next": "^15.5.4",
+    "pdf-lib": "^1.17.1",
     "pptxgenjs": "^3.12.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

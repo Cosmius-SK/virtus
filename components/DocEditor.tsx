@@ -22,7 +22,7 @@ export function DocEditor({
   format: FormatDef;
   doc: FormatDoc;
   onChange: (next: FormatDoc) => void;
-  onRender: (as: 'pptx' | 'docx') => void;
+  onRender: (as: 'pptx' | 'docx' | 'pdf') => void;
   busy: boolean;
   onBack: () => void;
 }) {
@@ -224,7 +224,7 @@ export function DocEditor({
                 : 'rounded-md border border-rule bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40'
             }
           >
-            {busy ? 'Making…' : out === 'pptx' ? 'Download the slide' : 'Download as Word'}
+            {busy ? 'Making…' : out === 'pptx' ? 'Download the slide' : out === 'docx' ? 'Download as Word' : 'Download as PDF'}
           </button>
         ))}
       </div>

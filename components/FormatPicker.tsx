@@ -6,7 +6,7 @@ export interface FormatSummary {
   id: string;
   name: string;
   description: string;
-  outputs: ('pptx' | 'docx')[];
+  outputs: ('pptx' | 'docx' | 'pdf')[];
 }
 
 /**
@@ -70,7 +70,7 @@ export function FormatPicker({
                   key={out}
                   className="rounded border border-rule px-1.5 py-px text-[10px] uppercase tracking-wide text-ink/40"
                 >
-                  {out === 'pptx' ? 'slide' : 'document'}
+                  {out === 'pptx' ? 'slide' : out === 'docx' ? 'document' : 'pdf'}
                 </span>
               ))}
             </span>

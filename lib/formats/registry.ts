@@ -76,7 +76,7 @@ export const FORMATS: FormatDef[] = [
     description: 'A project status one-pager — where it stands, what moved, what is in the way.',
     audience: 'a director who reads nothing else about this project all week',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('projectId', 'Project ID', 'Project id if given, else NA.', 1.2),
@@ -107,7 +107,7 @@ export const FORMATS: FormatDef[] = [
     description: 'Risks, assumptions, issues and dependencies on one page.',
     audience: 'a delivery lead and the people they escalate to',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       para('summary', 'Position', 'One or two sentences on what the log says overall.', 0.42),
       table('risks', 'Risks', 'Things that might happen.', [
@@ -135,7 +135,7 @@ export const FORMATS: FormatDef[] = [
     description: 'The one-page kickoff: why, what, who, and what is out of scope.',
     audience: 'a sponsor deciding whether to fund and start it',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('sponsor', 'Sponsor', 'Named sponsor, else empty.', 1.6),
@@ -164,7 +164,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What broke, for how long, why, and what stops it happening again.',
     audience: 'engineers who will fix it and a manager who will be asked about it',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('incidentId', 'Incident', 'Incident id or ticket, else NA.', 1.2),
@@ -191,7 +191,7 @@ export const FORMATS: FormatDef[] = [
     description: 'A CAB-ready change: what, when, blast radius, and how to back out.',
     audience: 'a change advisory board approving or rejecting it',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('changeId', 'Change', 'Change id if given, else NA.', 1.2),
@@ -219,7 +219,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What shipped, what changed for users, and what to watch.',
     audience: 'the teams who support it and the people who use it',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('release', 'Release', 'Version or release name as written.', 1.6),
@@ -244,7 +244,7 @@ export const FORMATS: FormatDef[] = [
     description: 'A decision, its context, the options weighed and what it costs.',
     audience: 'the engineer who arrives in two years and asks why it is like this',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('adrId', 'ADR', 'Number or id if given, else NA.', 1.0),
@@ -271,7 +271,7 @@ export const FORMATS: FormatDef[] = [
     description: 'The runbook view: sequence, timings, owners, and the go/no-go.',
     audience: 'everyone awake at 2am on the night',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('window', 'Window', 'The cutover window as written.', 2.0),
@@ -298,7 +298,7 @@ export const FORMATS: FormatDef[] = [
     description: 'How a service performed: volumes, SLAs, what hurt and what is being done.',
     audience: 'a service owner and the business they report to',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('service', 'Service', 'The service name as written.', 2.4),
@@ -325,7 +325,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What is running out, when, and what to buy or reclaim.',
     audience: 'an infrastructure lead and whoever signs purchase orders',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       para('summary', 'Position', 'What is tight and how long there is.', 0.44),
       table('capacity', 'Capacity', 'Only figures the note gives. Never estimate a headroom.', [
@@ -348,7 +348,7 @@ export const FORMATS: FormatDef[] = [
     description: 'How a supplier is performing against what was agreed.',
     audience: 'a contract owner preparing for a renewal conversation',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('vendor', 'Vendor', 'The supplier name as written.', 2.2),
@@ -376,7 +376,7 @@ export const FORMATS: FormatDef[] = [
     description: 'Open findings, what is being remediated, and what is accepted.',
     audience: 'a security lead and the risk committee',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       para('summary', 'Position', 'Where the estate stands. Blunt.', 0.44),
       table('findings', 'Open Findings', 'Only findings the note names.', [
@@ -399,7 +399,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What the sprint delivered, what slipped and what it learned.',
     audience: 'the team and its stakeholders',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('sprint', 'Sprint', 'Sprint name or number as written.', 1.4),
@@ -425,7 +425,7 @@ export const FORMATS: FormatDef[] = [
     description: 'Spend against plan, what moved it, and what is coming.',
     audience: 'a budget holder and their finance partner',
     status: true,
-    outputs: ['pptx', 'docx'],
+    outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       fields([
         f('period', 'Period', 'The period as written.', 1.8),
@@ -455,7 +455,7 @@ export const FORMATS: FormatDef[] = [
     description: 'A story with acceptance criteria a tester could actually run.',
     audience: 'the developer who builds it and the tester who proves it',
     status: true,
-    outputs: ['docx', 'pptx'],
+    outputs: ['docx', 'pptx', 'pdf'],
     sections: [
       fields([
         f('storyId', 'Story', 'Ticket reference if given, else NA.', 1.2),
@@ -479,7 +479,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What an epic is for, what it includes, and how anyone will know it worked.',
     audience: 'a product owner and the team that will pick it up',
     status: true,
-    outputs: ['docx', 'pptx'],
+    outputs: ['docx', 'pptx', 'pdf'],
     sections: [
       fields([
         f('epicId', 'Epic', 'Reference if given, else NA.', 1.2),
@@ -503,7 +503,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What the business needs, why, and what counts as delivered.',
     audience: 'a business sponsor signing it off and the team estimating from it',
     status: true,
-    outputs: ['docx'],
+    outputs: ['docx', 'pdf'],
     sections: [
       fields([
         f('reference', 'Reference', 'Document reference if given, else NA.', 1.4),
@@ -533,7 +533,7 @@ export const FORMATS: FormatDef[] = [
     description: 'How it will be built, what it touches, and what was traded away.',
     audience: 'the engineers who will build it and whoever reviews the approach',
     status: true,
-    outputs: ['docx'],
+    outputs: ['docx', 'pdf'],
     sections: [
       fields([
         f('component', 'Component', 'What is being designed, as named.', 2.4),
@@ -562,7 +562,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What will be tested, how, by whom, and what would stop a release.',
     audience: 'testers running it and a release manager deciding on it',
     status: true,
-    outputs: ['docx'],
+    outputs: ['docx', 'pdf'],
     sections: [
       fields([
         f('release', 'Release', 'What is being tested, as named.', 2.0),
@@ -591,7 +591,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What was tested, what was found, and whether it is accepted.',
     audience: 'a business owner putting their name to it',
     status: true,
-    outputs: ['docx'],
+    outputs: ['docx', 'pdf'],
     sections: [
       fields([
         f('release', 'Release', 'What was tested, as named.', 2.0),
@@ -619,7 +619,7 @@ export const FORMATS: FormatDef[] = [
     description: 'How to run it, what breaks, and what to do at 3am.',
     audience: 'someone on call who has never seen this system before',
     status: true,
-    outputs: ['docx'],
+    outputs: ['docx', 'pdf'],
     sections: [
       fields([
         f('service', 'Service', 'The service, as named.', 2.4),
@@ -647,7 +647,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What the team said, and what it will actually change.',
     audience: 'the team, and nobody above them unless they choose',
     status: false,
-    outputs: ['docx', 'pptx'],
+    outputs: ['docx', 'pptx', 'pdf'],
     sections: [
       fields([
         f('team', 'Team', 'Team name, as named.', 2.0),
@@ -674,7 +674,7 @@ export const FORMATS: FormatDef[] = [
     description: 'A proposal put to colleagues before it is built.',
     audience: 'engineers who will argue with it, which is the point',
     status: true,
-    outputs: ['docx'],
+    outputs: ['docx', 'pdf'],
     sections: [
       fields([
         f('rfcId', 'RFC', 'Reference if given, else NA.', 1.2),
@@ -702,7 +702,7 @@ export const FORMATS: FormatDef[] = [
     description: 'What the next person needs to know, before you are unavailable.',
     audience: 'whoever picks this up, possibly in a hurry',
     status: true,
-    outputs: ['docx'],
+    outputs: ['docx', 'pdf'],
     sections: [
       fields([
         f('what', 'Handing Over', 'What is being handed over, as named.', 2.4),

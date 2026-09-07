@@ -22,7 +22,7 @@ export default function Library() {
   }, []);
   useEffect(load, [load]);
 
-  async function download(item: Artefact, as: 'pptx' | 'docx') {
+  async function download(item: Artefact, as: 'pptx' | 'docx' | 'pdf') {
     setBusy(item.id);
     try {
       const url =
@@ -30,7 +30,9 @@ export default function Library() {
           ? '/api/deck'
           : as === 'docx'
             ? `/api/doc/format/${item.formatId}`
-            : `/api/deck/format/${item.formatId}`;
+            : as === 'pdf'
+              ? `/api/pdf/format/${item.formatId}`
+              : `/api/deck/format/${item.formatId}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,7 +92,7 @@ export default function Library() {
                       onClick={() => download(item, out)}
                       className="rounded border border-rule px-2 py-1 text-xs text-ink/70 transition hover:border-accent hover:text-accent disabled:opacity-40"
                     >
-                      {out === 'pptx' ? 'Slide' : 'Word'}
+                      {out === 'pptx' ? 'Slide' : out === 'docx' ? 'Word' : 'PDF'}
                     </button>
                   ))}
                   <button
