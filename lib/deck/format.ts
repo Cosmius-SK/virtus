@@ -201,11 +201,82 @@ function drawFields(slide: Slide, s: Section, v: unknown, doc: FormatDoc, format
   );
 }
 
+/**
+ * A pack: one slide per section, walked through rather than handed over.
+ *
+ * The same sections, given room. A steering committee is presented to; a
+ * one-pager is circulated. Neither is a better format, they are different
+ * meetings, and the section list does not know which it is in.
+ */
+function renderPack(pptx: PptxGenJS, format: FormatDef, doc: FormatDoc): void {
+  const cover = pptx.addSlide();
+  cover.background = { color: BRAND.paper };
+  cover.addText(doc.title, {
+    x: M,
+    y: 1.9,
+    w: FULL,
+    h: 1.2,
+    fontFace: BRAND.faceHeading,
+    fontSize: 32,
+    color: BRAND.ink,
+    valign: 'top',
+  });
+  cover.addText('', { x: M, y: 1.7, w: 1.2, h: 0, line: { color: BRAND.accentLine, width: 3 } });
+  cover.addText(format.status ? `${format.name} · ${doc.status}` : format.name, {
+    x: M,
+    y: 3.2,
+    w: FULL,
+    h: 0.4,
+    fontFace: BRAND.face,
+    fontSize: 13,
+    color: BRAND.muted,
+  });
+
+  for (const section of format.sections) {
+    const slide = pptx.addSlide();
+    slide.background = { color: BRAND.paper };
+    const value = doc.sections[section.id];
+    // A whole slide, so the caps that keep a one-pager readable do not apply.
+    const roomy = { ...section, max: (section.max ?? 6) * 2, height: 3.1 };
+
+    switch (section.kind) {
+      case 'fields':
+        drawFields(slide, section, value, doc, format, M, 1.0, FULL);
+        break;
+      case 'paragraph':
+        drawParagraph(slide, roomy, value, M, 0.9, FULL, 3.1);
+        break;
+      case 'list':
+        drawList(slide, roomy, value, M, 0.9, FULL, 3.1);
+        break;
+      case 'table':
+        drawTable(slide, roomy, value, M, 0.9, FULL, 3.1);
+        break;
+    }
+
+    slide.addText(doc.title, {
+      x: M,
+      y: H - 0.34,
+      w: 6,
+      h: 0.22,
+      fontFace: BRAND.face,
+      fontSize: 8,
+      color: BRAND.muted,
+      valign: 'middle',
+    });
+  }
+}
+
 export async function renderFormat(format: FormatDef, doc: FormatDoc): Promise<Buffer> {
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
   pptx.theme = { headFontFace: BRAND.faceHeading, bodyFontFace: BRAND.face };
   pptx.title = doc.title;
+
+  if (format.layout === 'pack') {
+    renderPack(pptx, format, doc);
+    return (await pptx.write({ outputType: 'nodebuffer' })) as Buffer;
+  }
 
   const slide = pptx.addSlide();
   slide.background = { color: BRAND.paper };

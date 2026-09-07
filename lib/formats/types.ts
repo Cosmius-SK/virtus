@@ -66,6 +66,18 @@ export interface Section {
  */
 export type Output = 'pptx' | 'docx' | 'pdf';
 
+/**
+ * How much room a format gets.
+ *
+ * A one-pager puts everything on one slide, which is what gets circulated. A
+ * pack gives each section its own slide, which is what gets presented — a
+ * steering committee is walked through an argument, not handed a dense page and
+ * left to read it while someone talks over them.
+ *
+ * The section list is identical either way. Only the room changes.
+ */
+export type Layout = 'one-pager' | 'pack';
+
 export interface FormatDef {
   id: string;
   name: string;
@@ -77,6 +89,8 @@ export interface FormatDef {
   status: boolean;
   /** Slide, Word document, or both. First is the default offered. */
   outputs: Output[];
+  /** One dense slide, or one slide per section. Defaults to a one-pager. */
+  layout?: Layout;
   sections: Section[];
 }
 

@@ -723,6 +723,81 @@ export const FORMATS: FormatDef[] = [
       ),
     ],
   },
+
+  // ── Packs ───────────────────────────────────────────────────────────────────
+  // Same sections, more room. These are presented rather than circulated: a
+  // steering committee is walked through an argument, not handed a dense page
+  // and left to read it while somebody talks over them.
+
+  {
+    id: 'steerco',
+    name: 'Steering committee pack',
+    description: 'The full walkthrough — position, progress, risks, decisions needed.',
+    audience: 'a steering committee who will be asked to decide something',
+    status: true,
+    outputs: ['pptx', 'docx', 'pdf'],
+    layout: 'pack',
+    sections: [
+      fields([
+        f('programme', 'Programme', 'The programme name as written.', 2.4),
+        f('period', 'Period', 'Reporting period as written.', 1.6),
+        f('sro', 'SRO', 'Senior responsible owner, as named.', 1.8),
+        f('nextReview', 'Next Review', 'Next review date, if stated.', 1.6),
+      ]),
+      para('position', 'Where We Are', 'Three or four sentences. The position, and whether the date holds. Open with the answer, not the activity — this committee has read a hundred of these.', 0.6),
+      list('progress', 'Progress Since Last Time', 'What actually moved. Completed things.', 0.8, 6),
+      table('workstreams', 'Workstreams', 'Only workstreams the note names.', [
+        col('workstream', 'Workstream', 'The workstream.', 2.4),
+        col('status', 'Status', 'Its status, only if the note gives one.', 1.2),
+        OWNER,
+        col('note', 'Note', 'What is going on, if the note says.', 3.2),
+      ], 0.9, 6),
+      table('risks', 'Risks Needing This Group', 'Only risks the note escalates.', [
+        col('risk', 'Risk', 'The risk.', 2.6),
+        IMPACT,
+        OWNER,
+        col('ask', 'What We Need', 'What is being asked of the committee, if stated.', 2.4),
+      ], 0.9, 5),
+      list('decisions', 'Decisions Needed Today', 'What this group must decide. Put the risk before the ask. An item with no decision in it is not a decision needed.', 0.8, 5),
+      ...pair(
+        list('nextPeriod', 'Next Period', 'What is committed next.', 0.7, 6),
+        list('watch', 'Watching', 'What has not become a risk yet.', 0.7, 6),
+      ),
+    ],
+  },
+
+  {
+    id: 'programme-review',
+    name: 'Programme review pack',
+    description: 'A deeper walkthrough — benefits, finance, delivery and dependencies.',
+    audience: 'a portfolio board comparing this against everything else running',
+    status: true,
+    outputs: ['pptx', 'docx', 'pdf'],
+    layout: 'pack',
+    sections: [
+      fields([
+        f('programme', 'Programme', 'The programme name as written.', 2.4),
+        f('stage', 'Stage', 'Where in its life it is, if stated.', 1.6),
+        f('spend', 'Spend to Date', 'Only if the note gives a figure.', 1.6),
+        f('forecast', 'Forecast', 'Only if the note gives a figure.', 1.6),
+      ]),
+      para('summary', 'Summary', 'Where the programme stands, plainly. Say over or late if it is.', 0.6),
+      list('benefits', 'Benefits', 'What this is meant to deliver, and whether it still will. Only claims the note makes.', 0.8, 6),
+      table('milestones', 'Milestones', 'Dated checkpoints and whether they hold.', [
+        col('milestone', 'Milestone', 'The checkpoint.', 2.8),
+        DUE,
+        col('status', 'Status', 'Only if the note gives one.', 1.2),
+        col('note', 'Note', 'Anything qualifying it.', 2.6),
+      ], 0.9, 6),
+      table('dependencies', 'Dependencies', 'What this waits on, outside its own control.', [
+        col('dependency', 'Dependency', 'What is depended on.', 2.6),
+        col('on', 'On Whom', 'Team or supplier, as named.', 1.6),
+        DUE,
+        IMPACT,
+      ], 0.9, 5),
+      list('asks', 'Asks', 'What the programme needs from this board.', 0.8, 5),
+    ],
+  },
 ];
 
 export function formatById(id: string): FormatDef | undefined {
