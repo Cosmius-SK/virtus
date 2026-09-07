@@ -3,6 +3,15 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.4.0 — A door with a lock on it
+
+- **A shared passcode**, set with `VIRTUS_PASSCODE`. Leave it unset and there is
+  no gate, which is what a local checkout wants and what lesson 12.10 asks for:
+  fail open on a gate that can lock you out.
+- The cookie is derived from the code rather than stored, so there is no session
+  table to keep and changing the code signs everyone out — the behaviour you
+  want the moment a code leaks.
+
 ## 0.3.1 — What the first real note taught it
 
 A real weekly note went through the one-pager for the first time. The reading
