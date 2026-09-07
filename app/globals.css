@@ -6,12 +6,25 @@
   color-scheme: light;
 }
 
-body {
-  background: #fbfaf9;
-  color: #1a1a1a;
+html {
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-textarea {
-  field-sizing: content;
+body {
+  background: #f5f7f9;
+  color: #131a24;
+}
+
+/* Inputs in an enterprise tool are used for hours; they should be quiet until
+   focused, and unmistakable when they are. */
+input,
+textarea,
+select {
+  font-feature-settings: 'tnum' 0;
+}
+
+::selection {
+  background: #ffd9c9;
+  color: #131a24;
 }

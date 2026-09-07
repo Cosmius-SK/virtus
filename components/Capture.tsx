@@ -50,14 +50,14 @@ export function Capture({
           onChange(e.target.value);
           queueDraftSave(e.target.value);
         }}
-        placeholder="After the steerco, the stand-up, the call you did not want to take — what was said, what is stuck, what you promised."
-        rows={10}
-        className="w-full resize-none rounded-lg border border-rule bg-white px-5 py-4 text-[15px] leading-relaxed text-ink outline-none transition focus:border-accent/60 focus:ring-4 focus:ring-accent/10 disabled:opacity-60"
+        placeholder="Notes from the meeting, the stand-up or the call. Out of order is fine — what was said, what is blocked, what was committed."
+        rows={9}
+        className="w-full resize-none rounded border border-line bg-white px-4 py-3 text-[14px] leading-relaxed text-ink outline-none transition placeholder:text-ink40 focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:opacity-60"
       />
-      <p className="mt-2 text-xs text-ink/45">
-        {restored && text ? 'Picked up where you left off. ' : ''}
-        Dictating is faster: <Key>Windows</Key> + <Key>H</Key>, the mic key on a Mac keyboard, or
-        the mic on your phone&rsquo;s keyboard.
+      <p className="mt-2 text-[12px] text-ink40">
+        {restored && text ? 'Restored from your last session. ' : ''}
+        Dictation is quicker than typing: <Key>Windows</Key> + <Key>H</Key>, or the microphone key
+        on a Mac or phone keyboard.
       </p>
     </>
   );
@@ -65,7 +65,7 @@ export function Capture({
 
 function Key({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="rounded border border-rule bg-white px-1 py-px font-sans text-[10px] text-ink/70">
+    <kbd className="rounded border border-line bg-canvas px-1.5 py-px font-sans text-[10px] text-ink60">
       {children}
     </kbd>
   );

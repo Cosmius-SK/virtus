@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { add, all, forget, update } from '@/lib/org/store';
 import { KINDS, type Entry, type EntryKind } from '@/lib/org/types';
 
@@ -34,21 +33,17 @@ export default function Organisation() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12">
-      <Link href="/" className="text-xs text-ink/45 underline-offset-2 hover:text-accent hover:underline">
-        ← back
-      </Link>
-      <h1 className="mt-4 text-2xl font-light tracking-tight text-ink">What Virtus knows</h1>
-      <p className="mt-1 text-sm text-ink/55">
-        The people, clients, systems and words this firm uses. Every document is written with these
-        in front of it — which is the difference between output that is generic and output that is
+    <main className="mx-auto w-full max-w-3xl px-6 py-9">
+      <h1 className="text-[26px] font-semibold tracking-tight text-ink">Organisation</h1>
+      <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-ink60">
+        The people, clients, systems and terminology this organisation uses. Every document is
+        written with this in front of it — the difference between generic output and output that is
         already yours.
       </p>
 
       {entries?.length === 0 && (
-        <p className="mt-6 rounded-lg border border-dashed border-rule px-4 py-8 text-center text-sm text-ink/45">
-          Nothing yet. Make a document and Virtus will offer to learn the names you used — that is
-          the moment it is worth ten seconds.
+        <p className="mt-6 rounded-lg border border-dashed border-line px-4 py-8 text-center text-sm text-ink40">
+          Nothing recorded yet. Produce a document and Virtus will offer to learn the names you used.
         </p>
       )}
 
@@ -57,11 +52,11 @@ export default function Organisation() {
         if (!list.length) return null;
         return (
           <section key={group.id} className="mt-7">
-            <h2 className="text-[11px] uppercase tracking-wide text-ink/40">{group.label}</h2>
-            <p className="mt-0.5 text-xs text-ink/40">{group.hint}</p>
+            <h2 className="text-[11px] uppercase tracking-wide text-ink40">{group.label}</h2>
+            <p className="mt-0.5 text-xs text-ink40">{group.hint}</p>
             <ul className="mt-2 space-y-1.5">
               {list.map((entry) => (
-                <li key={entry.id} className="rounded-lg border border-rule bg-white px-3 py-2">
+                <li key={entry.id} className="rounded-lg border border-line bg-paper px-3 py-2 shadow-card">
                   <div className="flex items-start gap-2">
                     <input
                       value={entry.name}
@@ -88,16 +83,16 @@ export default function Organisation() {
                         );
                       }}
                       onBlur={(e) => void update(entry.id, { about: e.target.value })}
-                      className="min-w-0 flex-1 bg-transparent text-sm text-ink/70 outline-none"
+                      className="min-w-0 flex-1 bg-transparent text-sm text-ink80 outline-none"
                     />
                     <button
                       type="button"
-                      aria-label="Forget this"
+                      aria-label="Remove"
                       onClick={async () => {
                         await forget(entry.id);
                         load();
                       }}
-                      className="text-ink/30 transition hover:text-ink"
+                      className="text-ink40 transition hover:text-ink"
                     >
                       ×
                     </button>
@@ -109,8 +104,8 @@ export default function Organisation() {
         );
       })}
 
-      <form onSubmit={create} className="mt-10 rounded-lg border border-rule bg-white px-4 py-3">
-        <p className="text-[11px] uppercase tracking-wide text-ink/40">Add something</p>
+      <form onSubmit={create} className="mt-10 rounded-lg border border-line bg-paper px-4 py-4 shadow-card">
+        <p className="text-[11px] uppercase tracking-wide text-ink40">Add an entry</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {KINDS.map((k) => (
             <button
@@ -120,7 +115,7 @@ export default function Organisation() {
               className={`rounded border px-2.5 py-1 text-xs transition ${
                 kind === k.id
                   ? 'border-accent bg-accent text-white'
-                  : 'border-rule text-ink/60 hover:border-accent/50'
+                  : 'border-line text-ink60 hover:border-accent/50'
               }`}
             >
               {k.label}
@@ -132,18 +127,18 @@ export default function Organisation() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name, spelled exactly right"
-            className="w-48 rounded border border-rule px-2 py-1.5 text-sm text-ink outline-none focus:border-accent/60"
+            className="w-48 rounded border border-line px-2 py-1.5 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
           />
           <input
             value={about}
             onChange={(e) => setAbout(e.target.value)}
             placeholder="A line about it"
-            className="min-w-0 flex-1 rounded border border-rule px-2 py-1.5 text-sm text-ink outline-none focus:border-accent/60"
+            className="min-w-0 flex-1 rounded border border-line px-2 py-1.5 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
           />
           <button
             type="submit"
             disabled={!name.trim()}
-            className="shrink-0 rounded-md bg-ink px-4 py-1.5 text-sm font-medium text-paper transition hover:bg-accent disabled:bg-ink/25"
+            className="shrink-0 rounded bg-accent px-4 py-1.5 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:opacity-40"
           >
             Add
           </button>

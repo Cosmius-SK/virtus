@@ -38,14 +38,14 @@ export function FormatPicker({
   return (
     <div>
       <div className="mb-3 flex items-baseline justify-between gap-4">
-        <p className="text-[11px] uppercase tracking-wide text-ink/40">
+        <p className="text-[11px] uppercase tracking-wide text-ink40">
           What should it become?
         </p>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search…"
-          className="w-40 rounded border border-rule bg-white px-2 py-1 text-xs text-ink outline-none focus:border-accent/60"
+          className="w-40 rounded border border-line bg-white px-2 py-1 text-xs text-ink outline-none focus:border-accent/60"
         />
       </div>
 
@@ -56,19 +56,19 @@ export function FormatPicker({
             type="button"
             disabled={disabled}
             onClick={() => onPick(format.id)}
-            className="group rounded-lg border border-rule bg-white px-3.5 py-3 text-left transition hover:border-accent hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+            className="group rounded-lg border border-line bg-white px-3.5 py-3 text-left transition hover:border-accent hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
           >
             <span className="block text-sm font-medium text-ink group-hover:text-accent">
               {busyId === format.id ? 'Reading your note…' : format.name}
             </span>
-            <span className="mt-0.5 block text-xs leading-snug text-ink/50">
+            <span className="mt-0.5 block text-xs leading-snug text-ink40">
               {format.description}
             </span>
             <span className="mt-1.5 flex gap-1">
               {format.outputs.map((out) => (
                 <span
                   key={out}
-                  className="rounded border border-rule px-1.5 py-px text-[10px] uppercase tracking-wide text-ink/40"
+                  className="rounded border border-line px-1.5 py-px text-[10px] uppercase tracking-wide text-ink40"
                 >
                   {out === 'pptx' ? 'slide' : out === 'docx' ? 'document' : 'pdf'}
                 </span>
@@ -79,7 +79,7 @@ export function FormatPicker({
       </div>
 
       {shown.length === 0 && (
-        <p className="rounded-lg border border-dashed border-rule px-4 py-6 text-center text-sm text-ink/45">
+        <p className="rounded-lg border border-dashed border-line px-4 py-6 text-center text-sm text-ink40">
           Nothing matches “{query}”. Virtus makes {formats.length} kinds of document so far.
         </p>
       )}

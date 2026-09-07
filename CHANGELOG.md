@@ -3,6 +3,31 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.12.0 — Two front doors
+
+Twenty-six templates in a flat list is not a choice, it is a search problem. And
+someone who does not yet know which document they want cannot pick from a list
+at all. So there are now two ways in, and one pipeline behind both.
+
+- **A template store.** Templates sit under five categories, searchable, each
+  with a preview of the shape it produces. The preview is drawn from the
+  template's own section list rather than being a screenshot — a screenshot is a
+  file somebody has to remember to regenerate, and it is wrong the first time a
+  section moves.
+- **Free-form.** A conversation for people who know what happened but not what
+  it should become. It asks about substance rather than preferences, one
+  question at a time, then proposes a template and a plan and waits to be told
+  yes. It never writes the document itself: agreeing to the plan hands over to
+  the same endpoints the store uses. A proposal naming a template that does not
+  exist is downgraded rather than trusted.
+- **Virtus's own identity**, in `lib/brand.ts` and one shared SVG path — kept
+  deliberately separate from `lib/deck/master.ts`, which is the *client's* house
+  style. What the product looks like and what its output looks like are two
+  different questions, and merging them is how a tool starts signing other
+  people's documents.
+- **Every line of copy rewritten** for a reader who is at work. The old
+  headline described the machine; the new one describes the job.
+
 ## 0.11.0 — Packs
 
 Some documents are circulated and some are presented. A one-pager is handed
