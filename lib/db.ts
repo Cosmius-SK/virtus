@@ -1,7 +1,8 @@
 'use client';
 
 import Dexie, { type Table } from 'dexie';
-import type { FormatDoc } from './formats/types';
+import type { FormatDef, FormatDoc } from './formats/types';
+import type { House } from './house';
 import type { Run } from './meter';
 import type { Entry } from './org/types';
 import type { Outline, Structure } from './types';
@@ -68,12 +69,51 @@ export interface Artefact extends Owned {
   visibility: 'private';
 }
 
+/**
+ * A TEMPLATE SOMEBODY BUILT HERE, rather than one shipped in the registry.
+ *
+ * The same `FormatDef` the built-in ones are, because the engine must not be
+ * able to tell them apart — the moment a custom template is a second kind of
+ * thing, every renderer grows a branch and the twenty-seventh format costs what
+ * the first one did.
+ *
+ * It lives on the device with everything else, and therefore travels with the
+ * request rather than being looked up on the server (§7). That is the same
+ * decision the organisation model made and for the same reason: the endpoints
+ * stay stateless, and moving the storage later is a change of source, not of
+ * shape.
+ */
+export interface CustomTemplate extends Owned {
+  id: string;
+  def: FormatDef;
+}
+
+/**
+ * WHAT THE ADMIN HAS SET for everyone using this device.
+ *
+ * One row, not a table of key-values: the settings are read together on every
+ * page load and a single record is one read rather than four.
+ */
+export interface Settings extends Owned {
+  id: 'settings';
+  /**
+   * The broadcast strip. Operational and temporary — a trial, an outage, a
+   * freeze. Deliberately NOT the classification line, which is a control set by
+   * whoever deployed this and must not be editable by whoever is using it.
+   */
+  banner?: { on: boolean; text: string; tone: 'info' | 'warn' | 'alert' };
+  /** A house style read out of an uploaded deck. See lib/house.ts. */
+  house?: House;
+}
+
 class VirtusDB extends Dexie {
   notes!: Table<Note, string>;
   drafts!: Table<Draft, string>;
   artefacts!: Table<Artefact, string>;
   runs!: Table<Run, string>;
   org!: Table<Entry, string>;
+  templates!: Table<CustomTemplate, string>;
+  settings!: Table<Settings, string>;
 
   constructor() {
     super('virtus');
@@ -95,6 +135,13 @@ class VirtusDB extends Dexie {
     // a browser holding someone's work upgrades rather than being rebuilt.
     this.version(3).stores({
       org: 'id, ownerId, kind, name',
+    });
+    // The admin space: templates built here, and what the admin has set. Its
+    // own migration for the same reason as every other one — a browser holding
+    // someone's work upgrades rather than being rebuilt.
+    this.version(4).stores({
+      templates: 'id, ownerId, updatedAt',
+      settings: 'id, ownerId',
     });
   }
 }

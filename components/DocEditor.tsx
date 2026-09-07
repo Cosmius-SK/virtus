@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { STATUS_NAMES } from '@/lib/deck/master';
+import { STATUS_NAMES } from '@/lib/deck/status';
 import type { FormatDef, FormatDoc, Section } from '@/lib/formats/types';
 
 /**

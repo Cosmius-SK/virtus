@@ -10,9 +10,10 @@ import { TeachIt } from '@/components/TeachIt';
 import { TemplateFill, noteFrom, type Filled } from '@/components/TemplateFill';
 import { TemplateStore } from '@/components/TemplateStore';
 import { Working } from '@/components/Working';
+import { useSettings } from '@/lib/admin/use';
 import { db, newId } from '@/lib/db';
 import { clearDraft } from '@/lib/drafts';
-import { formatById } from '@/lib/formats/registry';
+import { findFormat, useFormats } from '@/lib/formats/all';
 import type { FormatDef, FormatDoc } from '@/lib/formats/types';
 import { friendly, type Friendly } from '@/lib/friendly';
 import { recordRun } from '@/lib/meter';
@@ -27,6 +28,8 @@ type Stage = 'compose' | 'fill' | 'deckNote' | 'doc' | 'outline';
 type Mode = 'templates' | 'freeform';
 
 export default function Page() {
+  const { formats, custom } = useFormats();
+  const { settings } = useSettings();
   const [stage, setStage] = useState<Stage>('compose');
   const [mode, setMode] = useState<Mode>('templates');
   const [note, setNote] = useState('');
@@ -49,7 +52,7 @@ export default function Page() {
   const [outline, setOutline] = useState<Outline | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
 
-  const format = formatId ? formatById(formatId) : undefined;
+  const format = formatId ? findFormat(formatId, custom) : undefined;
 
   async function keepNote(text: string, structure?: Structure): Promise<string> {
     const id = newId();
@@ -61,6 +64,9 @@ export default function Page() {
 
   /** The reading pass, shared by both modes. */
   async function build(id: string, text: string, label: string, guided = false) {
+    // A custom template is not on the server, so it goes with the request. A
+    // built-in one is ignored there, which is what stops a caller redefining it.
+    const carried = custom.find((f) => f.id === id);
     setBusyId(id);
     setProblem(null);
     const started = Date.now();
@@ -74,6 +80,7 @@ export default function Page() {
         note: corrected,
         org,
         guided,
+        format: carried,
       });
       await keepNote(text);
       setSource(corrected);
@@ -181,6 +188,7 @@ export default function Page() {
           current: typeof current === 'string' ? current : JSON.stringify(current, null, 1),
           instruction,
           org,
+          format: custom.find((f) => f.id === formatId),
         },
       );
       setDoc({ ...doc, sections: { ...doc.sections, [sectionId]: r.value } });
@@ -213,6 +221,7 @@ export default function Page() {
         org,
         guided: true,
         instruction,
+        format: custom.find((f) => f.id === formatId),
       });
       setDoc(r.doc);
       await recordRun({
@@ -240,7 +249,7 @@ export default function Page() {
       const org = await context();
       const r = await post<{ reply: string; ready: boolean; proposal: Proposal | null }>(
         '/api/compose',
-        { messages: next, org },
+        { messages: next, org, templates: custom },
       );
       setTurns([...next, { role: 'assistant', content: r.reply }]);
       setProposal(r.ready ? r.proposal : null);
@@ -273,7 +282,11 @@ export default function Page() {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isDoc ? { doc } : { outline }),
+        body: JSON.stringify(
+          isDoc
+            ? { doc, format: custom.find((f) => f.id === formatId), house: settings?.house }
+            : { outline, house: settings?.house },
+        ),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!res.ok) throw new Error(await errorFrom(res));
@@ -502,7 +515,12 @@ export default function Page() {
             </span>
           </button>
 
-          <TemplateStore onSelect={chooseTemplate} disabled={busyId !== null} busyId={busyId} />
+          <TemplateStore
+            formats={formats}
+            onSelect={chooseTemplate}
+            disabled={busyId !== null}
+            busyId={busyId}
+          />
         </>
       ) : (
         <div className="max-w-3xl">
@@ -516,7 +534,7 @@ export default function Page() {
           />
           {busyId && busyId !== 'compose' && (
             <div className="mt-5">
-              <Working what={formatById(busyId)?.name ?? 'your document'} />
+              <Working what={findFormat(busyId, custom)?.name ?? 'your document'} />
             </div>
           )}
           {problem && (

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { STATUS_NAMES } from '@/lib/deck/master';
+import { STATUS_NAMES } from '@/lib/deck/status';
 import type { FormatDef, Section } from './types';
 
 /**

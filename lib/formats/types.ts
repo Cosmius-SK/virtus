@@ -1,4 +1,4 @@
-import type { StatusName } from '@/lib/deck/master';
+import type { StatusName } from '@/lib/deck/status';
 
 /**
  * A format described as data rather than code.
@@ -78,13 +78,22 @@ export type Output = 'pptx' | 'docx' | 'pdf';
  */
 export type Layout = 'one-pager' | 'pack';
 
-/** Where a template sits in the store. */
-export type Category =
-  | 'Project & delivery'
-  | 'Operations'
-  | 'Engineering'
-  | 'Requirements & testing'
-  | 'Governance packs';
+/**
+ * Where a template sits in the store, in the order the shelves are shown.
+ *
+ * A list rather than a bare union, because the store, the admin screen and the
+ * validator all need to enumerate them and three copies of five strings is
+ * three chances to disagree.
+ */
+export const CATEGORIES = [
+  'Project & delivery',
+  'Operations',
+  'Engineering',
+  'Requirements & testing',
+  'Governance packs',
+] as const;
+
+export type Category = (typeof CATEGORIES)[number];
 
 export interface FormatDef {
   id: string;

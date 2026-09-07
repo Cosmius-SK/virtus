@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { MODELS, structured } from '@/lib/ai/provider';
 import { rewriteSystem, rewriteUser } from '@/lib/formats/prompt';
-import { formatById } from '@/lib/formats/registry';
+import { resolveFormat } from '@/lib/formats/resolve';
 import { schemaForSection } from '@/lib/formats/schema';
 import type { SectionValue } from '@/lib/formats/types';
 import { OrgContextSchema } from '@/lib/org/schema';
@@ -25,25 +25,27 @@ export const maxDuration = 60;
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const format = formatById(id);
-  if (!format) return NextResponse.json({ error: 'No such format.' }, { status: 404 });
 
-  let sectionId = '';
-  let note = '';
-  let current = '';
-  let instruction = '';
-  let org: OrgContext | undefined;
+  let body: Record<string, unknown>;
   try {
-    const body = (await req.json()) as Record<string, unknown>;
-    sectionId = typeof body.sectionId === 'string' ? body.sectionId : '';
-    note = typeof body.note === 'string' ? body.note.trim() : '';
-    current = typeof body.current === 'string' ? body.current : '';
-    instruction = typeof body.instruction === 'string' ? body.instruction.slice(0, 2000) : '';
-    const parsedOrg = OrgContextSchema.safeParse(body.org);
-    if (parsedOrg.success && parsedOrg.data.entries.length) org = parsedOrg.data;
+    body = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Send JSON with a section to rewrite.' }, { status: 400 });
   }
+
+  const resolved = resolveFormat(id, body.format);
+  if ('error' in resolved) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+  }
+  const { format } = resolved;
+
+  const sectionId = typeof body.sectionId === 'string' ? body.sectionId : '';
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  const current = typeof body.current === 'string' ? body.current : '';
+  const instruction = typeof body.instruction === 'string' ? body.instruction.slice(0, 2000) : '';
+  const parsedOrg = OrgContextSchema.safeParse(body.org);
+  const org: OrgContext | undefined =
+    parsedOrg.success && parsedOrg.data.entries.length ? parsedOrg.data : undefined;
 
   const section = format.sections.find((s) => s.id === sectionId);
   if (!section) return NextResponse.json({ error: 'No such section.' }, { status: 404 });

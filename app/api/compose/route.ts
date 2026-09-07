@@ -4,7 +4,9 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { client, MODELS } from '@/lib/ai/provider';
 import { COMPOSE_SYSTEM } from '@/lib/ai/composePrompt';
+import { FormatDefSchema } from '@/lib/formats/def-schema';
 import { formatById } from '@/lib/formats/registry';
+import type { FormatDef } from '@/lib/formats/types';
 import { OrgContextSchema } from '@/lib/org/schema';
 
 export const runtime = 'nodejs';
@@ -32,8 +34,9 @@ const Reply = z.object({
 export async function POST(req: Request) {
   let turns: z.infer<typeof Turn>[] = [];
   let org;
+  let extra: FormatDef[] = [];
   try {
-    const body = (await req.json()) as { messages?: unknown; org?: unknown };
+    const body = (await req.json()) as { messages?: unknown; org?: unknown; templates?: unknown };
     const parsed = z.array(Turn).min(1).max(40).safeParse(body.messages);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Send the conversation so far.' }, { status: 400 });
@@ -41,6 +44,11 @@ export async function POST(req: Request) {
     turns = parsed.data;
     const parsedOrg = OrgContextSchema.safeParse(body.org);
     if (parsedOrg.success && parsedOrg.data.entries.length) org = parsedOrg.data;
+    // Templates built on the device, sent so they can be proposed. Malformed
+    // ones are dropped rather than refused: a bad template someone is still
+    // editing must not be the reason the conversation stops working.
+    const parsedTemplates = z.array(FormatDefSchema).max(50).safeParse(body.templates);
+    if (parsedTemplates.success) extra = parsedTemplates.data as FormatDef[];
   } catch {
     return NextResponse.json({ error: 'Send JSON with messages.' }, { status: 400 });
   }
@@ -50,7 +58,7 @@ export async function POST(req: Request) {
       model: MODELS.outline,
       max_tokens: 3000,
       system: [
-        { type: 'text', text: COMPOSE_SYSTEM(org), cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: COMPOSE_SYSTEM(org, extra), cache_control: { type: 'ephemeral' } },
       ],
       messages: turns as Anthropic.Messages.MessageParam[],
       output_config: { format: zodOutputFormat(Reply), effort: 'low' },
@@ -63,7 +71,9 @@ export async function POST(req: Request) {
     const out = message.parsed_output;
     // A proposal naming a template that does not exist is worse than no
     // proposal: the button would fail after they agreed to it.
-    const known = out.proposal.formatId ? formatById(out.proposal.formatId) : undefined;
+    const known = out.proposal.formatId
+      ? (formatById(out.proposal.formatId) ?? extra.find((f) => f.id === out.proposal.formatId))
+      : undefined;
 
     return NextResponse.json({
       reply: out.reply,

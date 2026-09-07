@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { MODELS, structured } from '@/lib/ai/provider';
 import { systemFor, userFor } from '@/lib/formats/prompt';
-import { formatById } from '@/lib/formats/registry';
+import { resolveFormat } from '@/lib/formats/resolve';
 import { schemaFor } from '@/lib/formats/schema';
 import type { FormatDoc } from '@/lib/formats/types';
 import { OrgContextSchema } from '@/lib/org/schema';
@@ -14,30 +14,30 @@ export const maxDuration = 60;
 /** A note → the fields of any format. One endpoint for all of them (§7). */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const format = formatById(id);
-  if (!format) return NextResponse.json({ error: 'No such format.' }, { status: 404 });
 
-  let note = '';
-  let guided = false;
-  let instruction = '';
-  let org: OrgContext | undefined;
+  let body: Record<string, unknown>;
   try {
-    const body = (await req.json()) as {
-      note?: unknown;
-      org?: unknown;
-      guided?: unknown;
-      instruction?: unknown;
-    };
-    note = typeof body.note === 'string' ? body.note.trim() : '';
-    guided = body.guided === true;
-    instruction = typeof body.instruction === 'string' ? body.instruction.slice(0, 2000) : '';
-    const parsedOrg = OrgContextSchema.safeParse(body.org);
-    // An unusable organisation model is dropped rather than refused: a bad
-    // entry must never be the reason someone cannot make a document.
-    if (parsedOrg.success && parsedOrg.data.entries.length) org = parsedOrg.data;
+    body = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Send JSON with a note.' }, { status: 400 });
   }
+
+  // A template built in the admin space lives on the device, so it arrives with
+  // the request rather than being looked up here (§7).
+  const resolved = resolveFormat(id, body.format);
+  if ('error' in resolved) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+  }
+  const { format } = resolved;
+
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  const guided = body.guided === true;
+  const instruction = typeof body.instruction === 'string' ? body.instruction.slice(0, 2000) : '';
+  const parsedOrg = OrgContextSchema.safeParse(body.org);
+  // An unusable organisation model is dropped rather than refused: a bad entry
+  // must never be the reason someone cannot make a document.
+  const org: OrgContext | undefined =
+    parsedOrg.success && parsedOrg.data.entries.length ? parsedOrg.data : undefined;
   if (!note) return NextResponse.json({ error: 'The note is empty.' }, { status: 400 });
   if (note.length > 60_000) {
     return NextResponse.json(
