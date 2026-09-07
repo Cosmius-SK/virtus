@@ -19,6 +19,9 @@ const config = {
     NEXT_PUBLIC_VIRTUS_VERSION: version,
     NEXT_PUBLIC_VIRTUS_RELEASE: name,
     NEXT_PUBLIC_VIRTUS_NOTES: notes ?? '',
+    // Shown in the header on every screen. A classification nobody can see is
+    // not a control (§5).
+    NEXT_PUBLIC_VIRTUS_CLASSIFICATION: process.env.VIRTUS_CLASSIFICATION ?? '',
   },
 };
 
