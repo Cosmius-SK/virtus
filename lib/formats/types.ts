@@ -78,6 +78,14 @@ export type Output = 'pptx' | 'docx' | 'pdf';
  */
 export type Layout = 'one-pager' | 'pack';
 
+/** Where a template sits in the store. */
+export type Category =
+  | 'Project & delivery'
+  | 'Operations'
+  | 'Engineering'
+  | 'Requirements & testing'
+  | 'Governance packs';
+
 export interface FormatDef {
   id: string;
   name: string;
@@ -85,6 +93,8 @@ export interface FormatDef {
   description: string;
   /** Who reads it. Steers how blunt the writing should be. */
   audience: string;
+  /** Which shelf of the template store this sits on. */
+  category: Category;
   /** Whether the banner row carries a status chip. */
   status: boolean;
   /** Slide, Word document, or both. First is the default offered. */

@@ -75,6 +75,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Weekly status report',
     description: 'A project status one-pager — where it stands, what moved, what is in the way.',
     audience: 'a director who reads nothing else about this project all week',
+    category: 'Project & delivery',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -106,6 +107,7 @@ export const FORMATS: FormatDef[] = [
     name: 'RAID log',
     description: 'Risks, assumptions, issues and dependencies on one page.',
     audience: 'a delivery lead and the people they escalate to',
+    category: 'Project & delivery',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -134,6 +136,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Project charter',
     description: 'The one-page kickoff: why, what, who, and what is out of scope.',
     audience: 'a sponsor deciding whether to fund and start it',
+    category: 'Project & delivery',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -163,6 +166,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Incident postmortem',
     description: 'What broke, for how long, why, and what stops it happening again.',
     audience: 'engineers who will fix it and a manager who will be asked about it',
+    category: 'Operations',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -190,6 +194,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Change request',
     description: 'A CAB-ready change: what, when, blast radius, and how to back out.',
     audience: 'a change advisory board approving or rejecting it',
+    category: 'Operations',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -218,6 +223,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Release notes',
     description: 'What shipped, what changed for users, and what to watch.',
     audience: 'the teams who support it and the people who use it',
+    category: 'Operations',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -243,6 +249,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Architecture decision record',
     description: 'A decision, its context, the options weighed and what it costs.',
     audience: 'the engineer who arrives in two years and asks why it is like this',
+    category: 'Engineering',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -270,6 +277,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Cutover plan',
     description: 'The runbook view: sequence, timings, owners, and the go/no-go.',
     audience: 'everyone awake at 2am on the night',
+    category: 'Project & delivery',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -297,6 +305,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Service review',
     description: 'How a service performed: volumes, SLAs, what hurt and what is being done.',
     audience: 'a service owner and the business they report to',
+    category: 'Operations',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -324,6 +333,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Capacity report',
     description: 'What is running out, when, and what to buy or reclaim.',
     audience: 'an infrastructure lead and whoever signs purchase orders',
+    category: 'Operations',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -347,6 +357,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Vendor review',
     description: 'How a supplier is performing against what was agreed.',
     audience: 'a contract owner preparing for a renewal conversation',
+    category: 'Operations',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -375,6 +386,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Security posture',
     description: 'Open findings, what is being remediated, and what is accepted.',
     audience: 'a security lead and the risk committee',
+    category: 'Operations',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -398,6 +410,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Sprint review',
     description: 'What the sprint delivered, what slipped and what it learned.',
     audience: 'the team and its stakeholders',
+    category: 'Project & delivery',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -424,6 +437,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Budget status',
     description: 'Spend against plan, what moved it, and what is coming.',
     audience: 'a budget holder and their finance partner',
+    category: 'Project & delivery',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
@@ -454,6 +468,7 @@ export const FORMATS: FormatDef[] = [
     name: 'User story',
     description: 'A story with acceptance criteria a tester could actually run.',
     audience: 'the developer who builds it and the tester who proves it',
+    category: 'Requirements & testing',
     status: true,
     outputs: ['docx', 'pptx', 'pdf'],
     sections: [
@@ -478,6 +493,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Epic brief',
     description: 'What an epic is for, what it includes, and how anyone will know it worked.',
     audience: 'a product owner and the team that will pick it up',
+    category: 'Requirements & testing',
     status: true,
     outputs: ['docx', 'pptx', 'pdf'],
     sections: [
@@ -502,6 +518,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Business requirements',
     description: 'What the business needs, why, and what counts as delivered.',
     audience: 'a business sponsor signing it off and the team estimating from it',
+    category: 'Requirements & testing',
     status: true,
     outputs: ['docx', 'pdf'],
     sections: [
@@ -532,6 +549,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Technical design',
     description: 'How it will be built, what it touches, and what was traded away.',
     audience: 'the engineers who will build it and whoever reviews the approach',
+    category: 'Engineering',
     status: true,
     outputs: ['docx', 'pdf'],
     sections: [
@@ -561,6 +579,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Test plan',
     description: 'What will be tested, how, by whom, and what would stop a release.',
     audience: 'testers running it and a release manager deciding on it',
+    category: 'Requirements & testing',
     status: true,
     outputs: ['docx', 'pdf'],
     sections: [
@@ -590,6 +609,7 @@ export const FORMATS: FormatDef[] = [
     name: 'UAT sign-off',
     description: 'What was tested, what was found, and whether it is accepted.',
     audience: 'a business owner putting their name to it',
+    category: 'Requirements & testing',
     status: true,
     outputs: ['docx', 'pdf'],
     sections: [
@@ -618,6 +638,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Runbook',
     description: 'How to run it, what breaks, and what to do at 3am.',
     audience: 'someone on call who has never seen this system before',
+    category: 'Operations',
     status: true,
     outputs: ['docx', 'pdf'],
     sections: [
@@ -646,6 +667,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Retrospective',
     description: 'What the team said, and what it will actually change.',
     audience: 'the team, and nobody above them unless they choose',
+    category: 'Project & delivery',
     status: false,
     outputs: ['docx', 'pptx', 'pdf'],
     sections: [
@@ -673,6 +695,7 @@ export const FORMATS: FormatDef[] = [
     name: 'RFC',
     description: 'A proposal put to colleagues before it is built.',
     audience: 'engineers who will argue with it, which is the point',
+    category: 'Engineering',
     status: true,
     outputs: ['docx', 'pdf'],
     sections: [
@@ -701,6 +724,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Handover',
     description: 'What the next person needs to know, before you are unavailable.',
     audience: 'whoever picks this up, possibly in a hurry',
+    category: 'Engineering',
     status: true,
     outputs: ['docx', 'pdf'],
     sections: [
@@ -734,6 +758,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Steering committee pack',
     description: 'The full walkthrough — position, progress, risks, decisions needed.',
     audience: 'a steering committee who will be asked to decide something',
+    category: 'Governance packs',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     layout: 'pack',
@@ -771,6 +796,7 @@ export const FORMATS: FormatDef[] = [
     name: 'Programme review pack',
     description: 'A deeper walkthrough — benefits, finance, delivery and dependencies.',
     audience: 'a portfolio board comparing this against everything else running',
+    category: 'Governance packs',
     status: true,
     outputs: ['pptx', 'docx', 'pdf'],
     layout: 'pack',
