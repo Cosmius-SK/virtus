@@ -47,10 +47,24 @@ function filled(format: FormatDef): FormatDoc {
   return { title: 'A document', status: 'At Risk', reconcile: ['A doubt'], sections };
 }
 
+/** Every slide's text, so a pack is read as a whole rather than by its cover. */
 async function slideText(format: FormatDef, doc: FormatDoc): Promise<string[]> {
   const zip = await JSZip.loadAsync(await renderFormat(format, doc));
-  const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
-  return [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]);
+  const names = Object.keys(zip.files)
+    .filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a, b) => Number(a.match(/\d+/)![0]) - Number(b.match(/\d+/)![0]));
+  const out: string[] = [];
+  for (const name of names) {
+    const xml = await zip.file(name)!.async('string');
+    out.push(...[...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]));
+  }
+  return out;
+}
+
+/** How many slides a format produced. */
+async function slideCount(format: FormatDef, doc: FormatDoc): Promise<number> {
+  const zip = await JSZip.loadAsync(await renderFormat(format, doc));
+  return Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).length;
 }
 
 describe('the registry itself', () => {
@@ -144,6 +158,18 @@ describe.each(FORMATS.map((f) => [f.id, f] as const))('%s', (id, format) => {
       expect(xml, `${id} dropped ${s.id} from the Word version`).toContain(s.label);
     }
     expect(xml).not.toContain('A doubt');
+  });
+
+  it('gives a pack a slide per section, and a one-pager exactly one', async () => {
+    if (!format.outputs.includes('pptx')) return;
+    const count = await slideCount(format, filled(format));
+    if (format.layout === 'pack') {
+      // A cover, then one per section. A pack that collapses to one slide has
+      // silently become a one-pager, which is a different meeting.
+      expect(count, format.id).toBe(format.sections.length + 1);
+    } else {
+      expect(count, format.id).toBe(1);
+    }
   });
 
   it('renders a filled document and keeps the doubt off the slide', async () => {

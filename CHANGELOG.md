@@ -3,6 +3,17 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.11.0 — Packs
+
+Some documents are circulated and some are presented. A one-pager is handed
+over; a pack is walked through. The section list does not know which meeting it
+is in, so a format now says which room it gets.
+
+- **Steering committee pack** and **programme review pack** — a cover, then one
+  slide per section, with the caps that keep a one-pager readable lifted because
+  a whole slide has room.
+- 26 formats.
+
 ## 0.10.0 — PDF, and the third reader
 
 - **PDF output** for every format. A slide is for presenting, a Word document is
