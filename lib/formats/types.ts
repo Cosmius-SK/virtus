@@ -1,0 +1,80 @@
+import type { StatusName } from '@/lib/deck/master';
+
+/**
+ * A format described as data rather than code.
+ *
+ * Yesterday's lesson: shapes are the vocabulary and stay at seven; formats are
+ * the sentences and there should be many. Hand-writing a renderer per format
+ * makes the twentieth one as expensive as the first, which is how a tool ends
+ * up with three formats and a backlog.
+ *
+ * So a format is a list of named sections. One engine builds the schema the
+ * model fills, the prompt that tells it how, the screen that edits the result,
+ * and the slide. Adding a format is adding an entry to the registry — which is
+ * also what makes an admin screen a small job later rather than a rewrite.
+ */
+
+/** How a section holds its content, and therefore how it is drawn and edited. */
+export type SectionKind =
+  /** One block of prose. An executive summary, a decision, a conclusion. */
+  | 'paragraph'
+  /** Bullets. The workhorse. */
+  | 'list'
+  /** Rows and columns. Risks with owners, actions with dates. */
+  | 'table'
+  /** A single row of labelled values across the top. Dates, ids, a status. */
+  | 'fields';
+
+export interface Column {
+  id: string;
+  label: string;
+  /** Told to the model. Say what belongs here and what does not. */
+  hint: string;
+  /** Relative width. Shares of the row. */
+  width: number;
+}
+
+export interface Field {
+  id: string;
+  label: string;
+  hint: string;
+  width: number;
+}
+
+export interface Section {
+  id: string;
+  label: string;
+  kind: SectionKind;
+  hint: string;
+  /** Inches of slide height. Normalised if the sections together overflow. */
+  height: number;
+  /** Sit beside the next section rather than below it. */
+  beside?: boolean;
+  /** How many rows or bullets fit before the rest are left off the slide. */
+  max?: number;
+  columns?: Column[];
+  fields?: Field[];
+}
+
+export interface FormatDef {
+  id: string;
+  name: string;
+  /** Shown on the picker. What this is for, in the words someone would search. */
+  description: string;
+  /** Who reads it. Steers how blunt the writing should be. */
+  audience: string;
+  /** Whether the banner row carries a status chip. */
+  status: boolean;
+  sections: Section[];
+}
+
+/** What the model returns and the screen edits. */
+export type SectionValue = string | string[] | Record<string, string>[] | Record<string, string>;
+
+export interface FormatDoc {
+  title: string;
+  status: StatusName;
+  /** Contradictions, for the author. Never rendered (§11). */
+  reconcile: string[];
+  sections: Record<string, SectionValue>;
+}

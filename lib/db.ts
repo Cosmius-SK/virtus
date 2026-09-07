@@ -1,7 +1,8 @@
 'use client';
 
 import Dexie, { type Table } from 'dexie';
-import type { Outline, Structure, Wsr } from './types';
+import type { FormatDoc } from './formats/types';
+import type { Outline, Structure } from './types';
 
 /**
  * Local-first storage. Capture is instant and offline (§8.1); this is biblio's
@@ -55,10 +56,12 @@ export interface Artefact extends Owned {
   id: string;
   noteId: string;
   /** One row per format. Formats are many; shapes stay at seven. */
-  kind: 'deck' | 'wsr';
+  kind: 'deck' | 'format';
+  /** Which format, when kind is 'format'. */
+  formatId?: string;
   title: string;
   outline?: Outline;
-  wsr?: Wsr;
+  doc?: FormatDoc;
   /** Private today. The field exists so that changing it later is a switch. */
   visibility: 'private';
 }

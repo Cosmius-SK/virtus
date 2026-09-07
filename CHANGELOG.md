@@ -3,6 +3,22 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.5.0 — Fourteen formats, and an engine that makes the fifteenth cheap
+
+Formats are described as data, not code. One engine builds the schema the model
+fills, the prompt that tells it how, the screen that edits the result and the
+slide itself — so adding a format is adding an entry to a registry.
+
+- **Fourteen formats** an IT function actually writes: weekly status, RAID log,
+  project charter, incident postmortem, change request, release notes,
+  architecture decision record, cutover plan, service review, capacity report,
+  vendor review, security posture, sprint review and budget status.
+- A searchable picker, because by the twentieth format a dropdown is a guess.
+- The weekly status one-pager is now one entry in that registry rather than a
+  bespoke renderer. Its behaviour is unchanged; there is simply less of it.
+- Every format is tested end to end — schema, prompt and render, empty and
+  filled — so a malformed registry entry fails in CI rather than in a demo.
+
 ## 0.4.0 — A door with a lock on it
 
 - **A shared passcode**, set with `VIRTUS_PASSCODE`. Leave it unset and there is
