@@ -1,34 +1,47 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Capture, type Format } from '@/components/Capture';
+import { Capture } from '@/components/Capture';
+import { DocEditor } from '@/components/DocEditor';
+import { FormatPicker, type FormatSummary } from '@/components/FormatPicker';
 import { OutlineEditor } from '@/components/OutlineEditor';
-import { WsrEditor } from '@/components/WsrEditor';
 import { db, newId } from '@/lib/db';
+import { FORMATS, formatById } from '@/lib/formats/registry';
+import type { FormatDoc } from '@/lib/formats/types';
+import { clearDraft } from '@/lib/drafts';
 import { ownerId } from '@/lib/owner';
-import type { Outline, Structure, Wsr } from '@/lib/types';
+import type { Outline, Structure } from '@/lib/types';
 
-type Stage = 'capture' | 'outline' | 'wsr';
+/** The multi-slide deck is not a one-pager format, so it sits beside them. */
+const DECK: FormatSummary = {
+  id: 'deck',
+  name: 'Full deck',
+  description: 'Several slides — the argument first, as an outline you approve before anything is drawn.',
+};
 
-/**
- * Day one, end to end (§13): a note, one pass returning structure, the argument
- * as an editable list, and a real .pptx.
- *
- * Every step below is a call to an endpoint that works without a browser (§7).
- * The web app is the first caller, not the owner — when the plugin arrives it
- * calls these same three and needs no pipeline of its own.
- */
+const CHOICES: FormatSummary[] = [
+  ...FORMATS.map(({ id, name, description }) => ({ id, name, description })),
+  DECK,
+];
+
+type Stage = 'capture' | 'doc' | 'outline';
+
 export default function Page() {
   const [stage, setStage] = useState<Stage>('capture');
-  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [formatId, setFormatId] = useState<string | null>(null);
+  const [doc, setDoc] = useState<FormatDoc | null>(null);
   const [structure, setStructure] = useState<Structure | null>(null);
   const [outline, setOutline] = useState<Outline | null>(null);
-  const [wsr, setWsr] = useState<Wsr | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
+  const [took, setTook] = useState<number | null>(null);
 
-  /** Keep the note whatever format was asked for — it is private thinking (§4). */
-  async function keepNote(note: string, structure?: Structure): Promise<string> {
+  const format = formatId ? formatById(formatId) : undefined;
+
+  async function keepNote(structure?: Structure): Promise<string> {
     const id = newId();
     const now = Date.now();
     await db.notes.put({
@@ -43,98 +56,129 @@ export default function Page() {
     return id;
   }
 
-  async function generate(note: string, format: Format) {
-    setBusy(true);
+  async function pick(id: string) {
+    if (note.trim().length < 20) {
+      setError('Put a few sentences in the box first.');
+      return;
+    }
+    setBusyId(id);
     setError(null);
+    const started = Date.now();
     try {
-      if (format === 'wsr') {
-        const w = await post<{ wsr: Wsr }>('/api/wsr', { note });
-        await keepNote(note);
-        setWsr(w.wsr);
-        setStage('wsr');
-        return;
+      if (id === 'deck') {
+        const s = await post<{ structure: Structure }>('/api/structure', { note });
+        const o = await post<{ outline: Outline }>('/api/outline', {
+          structure: s.structure,
+          ask: '',
+        });
+        await keepNote(s.structure);
+        setStructure(s.structure);
+        setOutline(o.outline);
+        setStage('outline');
+      } else {
+        const r = await post<{ doc: FormatDoc }>(`/api/format/${id}`, { note });
+        await keepNote();
+        setFormatId(id);
+        setDoc(r.doc);
+        setStage('doc');
       }
-
-      const s = await post<{ structure: Structure }>('/api/structure', { note });
-      const o = await post<{ outline: Outline }>('/api/outline', { structure: s.structure, ask: '' });
-      await keepNote(note, s.structure);
-      setStructure(s.structure);
-      setOutline(o.outline);
-      setStage('outline');
+      setTook(Date.now() - started);
+      void clearDraft();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something failed.');
     } finally {
-      setBusy(false);
+      setBusyId(null);
     }
   }
 
   async function render() {
-    const wsrMode = stage === 'wsr';
-    if (wsrMode ? !wsr : !outline) return;
-    setBusy(true);
+    setBusyId('render');
     setError(null);
     try {
-      const res = await fetch(wsrMode ? '/api/deck/wsr' : '/api/deck', {
+      const isDoc = stage === 'doc';
+      const url = isDoc ? `/api/deck/format/${formatId}` : '/api/deck';
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(wsrMode ? { wsr } : { outline }),
+        body: JSON.stringify(isDoc ? { doc } : { outline }),
       });
       if (!res.ok) throw new Error(await errorFrom(res));
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const href = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = filenameFrom(res) ?? 'deck.pptx';
+      a.href = href;
+      a.download = filenameFrom(res) ?? 'virtus.pptx';
       a.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(href);
 
-      // A finished artefact. Separate table, its own visibility (§4, §10).
       const now = Date.now();
       await db.artefacts.put({
         id: newId(),
         ownerId: ownerId(),
         noteId: noteId ?? '',
-        kind: wsrMode ? 'wsr' : 'deck',
-        title: wsrMode ? wsr!.title : outline!.title,
-        outline: wsrMode ? undefined : outline!,
-        wsr: wsrMode ? wsr! : undefined,
+        kind: isDoc ? 'format' : 'deck',
+        formatId: formatId ?? undefined,
+        title: isDoc ? doc!.title : outline!.title,
+        outline: isDoc ? undefined : outline!,
+        doc: isDoc ? doc! : undefined,
         visibility: 'private',
         createdAt: now,
         updatedAt: now,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'The deck could not be rendered.');
+      setError(err instanceof Error ? err.message : 'The file could not be made.');
     } finally {
-      setBusy(false);
+      setBusyId(null);
     }
   }
 
   return (
     <main>
-      {stage === 'capture' ? (
-        <Capture onGenerate={generate} busy={busy} />
-      ) : stage === 'wsr' && wsr ? (
-        <WsrEditor
-          wsr={wsr}
-          onChange={setWsr}
+      {stage === 'capture' && (
+        <section className="mx-auto w-full max-w-3xl px-6 py-12">
+          <header className="mb-7">
+            <h1 className="text-2xl font-light tracking-tight text-ink">Virtus</h1>
+            <p className="mt-1 text-sm text-ink/55">
+              Put the mess in. Choose what it should become. Fix it before anything is made.
+            </p>
+          </header>
+
+          <Capture text={note} onChange={setNote} disabled={busyId !== null} />
+
+          <div className="mt-8">
+            <FormatPicker
+              formats={CHOICES}
+              onPick={pick}
+              disabled={busyId !== null}
+              busyId={busyId}
+            />
+          </div>
+        </section>
+      )}
+
+      {stage === 'doc' && format && doc && (
+        <DocEditor
+          format={format}
+          doc={doc}
+          onChange={setDoc}
           onRender={render}
-          busy={busy}
+          busy={busyId !== null}
           onBack={() => setStage('capture')}
         />
-      ) : outline ? (
+      )}
+
+      {stage === 'outline' && outline && (
         <>
           <OutlineEditor
             outline={outline}
             onChange={setOutline}
             onRender={render}
-            busy={busy}
+            busy={busyId !== null}
             onBack={() => setStage('capture')}
           />
           {structure && <WhatYouSaid structure={structure} />}
         </>
-      ) : (
-        <Capture onGenerate={generate} busy={busy} />
       )}
 
       {error && (
@@ -142,15 +186,13 @@ export default function Page() {
           {error}
         </p>
       )}
-      <Where />
+
+      <Footer took={took} />
     </main>
   );
 }
 
-/**
- * Nothing invented (§8.5). The note as Virtus read it, kept beside the outline
- * so a claim with no root in the note is visible rather than plausible.
- */
+/** Nothing invented (§8.5): the note as Virtus read it, beside what it made. */
 function WhatYouSaid({ structure }: { structure: Structure }) {
   return (
     <details className="mx-auto max-w-3xl px-6 pb-10">
@@ -181,8 +223,7 @@ function Row({ label, items }: { label: string; items: string[] }) {
   );
 }
 
-/** Virtus says where the text goes, plainly (§5). */
-function Where() {
+function Footer({ took }: { took: number | null }) {
   const [where, setWhere] = useState<{ provider: string; models: string[] } | null>(null);
   useEffect(() => {
     fetch('/api/where')
@@ -193,7 +234,8 @@ function Where() {
   return (
     <footer className="mx-auto max-w-3xl px-6 pb-10 text-[11px] text-ink/35">
       Virtus {process.env.NEXT_PUBLIC_VIRTUS_VERSION}
-      {where && ` · notes are sent to ${where.models.join(', ')} via ${where.provider}`}
+      {took !== null && ` · read in ${(took / 1000).toFixed(1)}s`}
+      {where && ` · sent to ${where.models.join(', ')} via ${where.provider}`}
       {' · nothing is shared; everything stays on this device'}
     </footer>
   );
@@ -210,8 +252,8 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 }
 
 /**
- * A corporate proxy returns HTML on a 403 (lesson 12.7). A Zscaler block page
- * is indistinguishable from a permission refusal unless you check the body.
+ * A corporate proxy returns HTML on a 403 (lesson 12.7). A block page is
+ * indistinguishable from a permission refusal unless you check the body.
  */
 async function errorFrom(res: Response): Promise<string> {
   const text = await res.text();
@@ -227,6 +269,5 @@ async function errorFrom(res: Response): Promise<string> {
 }
 
 function filenameFrom(res: Response): string | null {
-  const match = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/);
-  return match?.[1] ?? null;
+  return res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? null;
 }
