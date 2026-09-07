@@ -62,36 +62,37 @@ export function OutlineEditor({
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 py-12">
+    <section className="mx-auto w-full max-w-3xl px-6 py-9">
       <header className="mb-6">
         <button
           type="button"
           onClick={onBack}
-          className="mb-4 text-xs text-ink/45 underline-offset-2 hover:text-accent hover:underline"
+          className="mb-5 text-[12px] text-ink40 transition hover:text-accent"
         >
-          ← back to the note
+          ← Back
         </button>
         <input
           value={outline.title}
           onChange={(e) => onChange({ ...outline, title: e.target.value })}
-          className="w-full bg-transparent text-2xl font-light tracking-tight text-ink outline-none"
+          className="w-full bg-transparent text-[24px] font-semibold tracking-tight text-ink outline-none"
         />
         <input
           value={outline.subtitle}
           onChange={(e) => onChange({ ...outline, subtitle: e.target.value })}
           placeholder="Subtitle"
-          className="mt-1 w-full bg-transparent text-sm text-ink/55 outline-none"
+          className="mt-1 w-full bg-transparent text-[13px] text-ink60 outline-none"
         />
-        <p className="mt-4 text-sm text-ink/60">
-          Fix the argument here — it takes a minute. Nothing is rendered until you say so.
+        <p className="mt-3 text-[13px] leading-relaxed text-ink60">
+          Review the argument before any slide exists. Reorder, cut, merge or retitle — the deck is
+          drawn from what you approve here.
         </p>
       </header>
 
       <ol className="space-y-2">
         {outline.slides.map((slide, i) => (
-          <li key={i} className="rounded-lg border border-rule bg-white">
+          <li key={i} className="rounded-lg border border-line bg-paper shadow-card">
             <div className="flex items-start gap-3 px-4 py-3">
-              <span className="mt-1 w-5 shrink-0 text-right text-xs tabular-nums text-ink/35">
+              <span className="mt-1 w-5 shrink-0 text-right text-xs tabular-nums text-ink40">
                 {i + 1}
               </span>
               <button
@@ -99,13 +100,13 @@ export function OutlineEditor({
                 onClick={() => setOpen(open === i ? null : i)}
                 className="min-w-0 flex-1 text-left"
               >
-                <span className="block truncate text-[15px] text-ink">{slide.claim}</span>
-                <span className="mt-0.5 block text-xs text-ink/40">
+                <span className="block truncate text-[14px] font-medium text-ink">{slide.claim}</span>
+                <span className="mt-0.5 block text-[12px] text-ink40">
                   {slide.shape} · {slide.support.length} point
                   {slide.support.length === 1 ? '' : 's'}
                 </span>
               </button>
-              <div className="flex shrink-0 items-center gap-1 text-ink/35">
+              <div className="flex shrink-0 items-center gap-1 text-ink40">
                 <Icon label="Move up" onClick={() => move(i, -1)} disabled={i === 0}>
                   ↑
                 </Icon>
@@ -126,13 +127,13 @@ export function OutlineEditor({
             </div>
 
             {open === i && (
-              <div className="space-y-3 border-t border-rule px-4 py-4">
-                <Field label="Claim — the one sentence this slide makes">
+              <div className="space-y-3 border-t border-line px-4 py-4">
+                <Field label="Claim — the single point this slide makes">
                   <textarea
                     value={slide.claim}
                     onChange={(e) => patch(i, { claim: e.target.value })}
                     rows={2}
-                    className="w-full resize-none rounded border border-rule px-3 py-2 text-sm text-ink outline-none focus:border-accent/60"
+                    className="w-full resize-none rounded border border-line px-3 py-2 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
                   />
                 </Field>
                 <Field label={supportHint(slide.shape)}>
@@ -142,7 +143,7 @@ export function OutlineEditor({
                       patch(i, { support: e.target.value.split('\n').filter((l) => l.trim()) })
                     }
                     rows={Math.max(3, slide.support.length + 1)}
-                    className="w-full resize-none rounded border border-rule px-3 py-2 font-mono text-[13px] leading-relaxed text-ink outline-none focus:border-accent/60"
+                    className="w-full resize-none rounded border border-line px-3 py-2 font-mono text-[13px] leading-relaxed text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
                   />
                 </Field>
                 <Field label="Shape">
@@ -155,7 +156,7 @@ export function OutlineEditor({
                         className={`rounded border px-2.5 py-1 text-xs transition ${
                           slide.shape === shape
                             ? 'border-accent bg-accent text-white'
-                            : 'border-rule text-ink/60 hover:border-accent/50'
+                            : 'border-line bg-paper text-ink60 hover:border-accent hover:text-accent'
                         }`}
                       >
                         {shape}
@@ -169,18 +170,18 @@ export function OutlineEditor({
         ))}
       </ol>
 
-      <div className="mt-6 flex items-center justify-between gap-4">
-        <p className="text-xs text-ink/45">
-          {outline.slides.length} slide{outline.slides.length === 1 ? '' : 's'}. Open it in
-          PowerPoint and present it without editing one.
+      <div className="mt-7 flex items-center justify-between gap-4">
+        <p className="text-[12px] text-ink40">
+          {outline.slides.length} slide{outline.slides.length === 1 ? '' : 's'}. The test worth
+          applying: open it and present without editing a single one.
         </p>
         <button
           type="button"
           disabled={busy || outline.slides.length === 0}
           onClick={onRender}
-          className="shrink-0 rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-ink/25"
+          className="shrink-0 rounded bg-accent px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {busy ? 'Rendering…' : 'Download the deck'}
+          {busy ? 'Producing…' : 'Download slides'}
         </button>
       </div>
     </section>
@@ -204,7 +205,7 @@ function supportHint(shape: Shape): string {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] uppercase tracking-wide text-ink/40">{label}</span>
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">{label}</span>
       {children}
     </label>
   );
@@ -228,7 +229,7 @@ function Icon({
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className="h-6 w-6 rounded text-sm leading-none transition hover:bg-rule/50 hover:text-ink disabled:opacity-25 disabled:hover:bg-transparent"
+      className="h-6 w-6 rounded text-sm leading-none transition hover:bg-line/50 hover:text-ink disabled:opacity-25 disabled:hover:bg-transparent"
     >
       {children}
     </button>

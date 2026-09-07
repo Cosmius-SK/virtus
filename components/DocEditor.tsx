@@ -30,36 +30,37 @@ export function DocEditor({
     onChange({ ...doc, sections: { ...doc.sections, [id]: value } });
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 py-12">
+    <section className="mx-auto w-full max-w-3xl px-6 py-9">
       <button
         type="button"
         onClick={onBack}
-        className="mb-4 text-xs text-ink/45 underline-offset-2 hover:text-accent hover:underline"
+        className="mb-5 text-[12px] text-ink40 transition hover:text-accent"
       >
-        ← back to the note
+        ← Back
       </button>
 
-      <p className="text-[11px] uppercase tracking-wide text-ink/40">{format.name}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accentDark">{format.name}</p>
       <input
         value={doc.title}
         onChange={(e) => onChange({ ...doc, title: e.target.value })}
-        className="mt-1 w-full bg-transparent text-2xl font-light tracking-tight text-ink outline-none"
+        className="mt-1 w-full bg-transparent text-[24px] font-semibold tracking-tight text-ink outline-none"
       />
-      <p className="mt-2 text-sm text-ink/60">
-        Fix the facts here. Nothing is rendered until you say so — and an empty box stays empty.
+      <p className="mt-1.5 text-[13px] leading-relaxed text-ink60">
+        Review and correct the extracted detail. Nothing is produced until you choose an output,
+        and a field left blank stays blank.
       </p>
 
       {doc.reconcile.length > 0 && (
         <div className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
           <p className="text-[11px] uppercase tracking-wide text-amber-800/70">
-            Worth a look before you send this
+            Review before issuing
           </p>
           <ul className="mt-1.5 space-y-1 text-sm text-amber-900">
             {doc.reconcile.map((item, i) => (
               <li key={i}>{item}</li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-amber-800/60">Only you see this. None of it goes on the slide.</p>
+          <p className="mt-2 text-xs text-amber-800/60">Visible to you only. None of this appears in the document.</p>
         </div>
       )}
 
@@ -74,7 +75,7 @@ export function DocEditor({
                 className={`rounded border px-2.5 py-1 text-xs transition ${
                   doc.status === name
                     ? 'border-accent bg-accent text-white'
-                    : 'border-rule text-ink/60 hover:border-accent/50'
+                    : 'border-line bg-paper text-ink60 hover:border-accent hover:text-accent'
                 }`}
               >
                 {name}
@@ -93,7 +94,7 @@ export function DocEditor({
             <div key={section.id} className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {(section.fields ?? []).map((field) => (
                 <label key={field.id} className="block">
-                  <span className="mb-1 block text-[11px] uppercase tracking-wide text-ink/40">
+                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
                     {field.label}
                   </span>
                   <input
@@ -101,7 +102,7 @@ export function DocEditor({
                     onChange={(e) =>
                       setSection(section.id, { ...values, [field.id]: e.target.value })
                     }
-                    className="w-full rounded border border-rule px-2 py-1.5 text-sm text-ink outline-none focus:border-accent/60"
+                    className="w-full rounded border border-line px-2 py-1.5 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
                   />
                 </label>
               ))}
@@ -116,7 +117,7 @@ export function DocEditor({
                 value={typeof value === 'string' ? value : ''}
                 onChange={(e) => setSection(section.id, e.target.value)}
                 rows={3}
-                className="w-full resize-none rounded border border-rule px-3 py-2 text-sm text-ink outline-none focus:border-accent/60"
+                className="w-full resize-none rounded border border-line px-3 py-2 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
               />
             </Field>
           );
@@ -132,11 +133,11 @@ export function DocEditor({
                   setSection(section.id, e.target.value.split('\n').filter((l) => l.trim()))
                 }
                 rows={Math.max(3, items.length + 1)}
-                className="w-full resize-none rounded border border-rule px-3 py-2 text-sm leading-relaxed text-ink outline-none focus:border-accent/60"
+                className="w-full resize-none rounded border border-line px-3 py-2 text-sm leading-relaxed text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
               />
               {section.max && items.length > section.max && (
-                <span className="mt-1 block text-xs text-ink/40">
-                  The slide shows the first {section.max}.
+                <span className="mt-1 block text-xs text-ink40">
+                  The document shows the first {section.max}.
                 </span>
               )}
             </Field>
@@ -149,7 +150,7 @@ export function DocEditor({
           <Field key={section.id} label={section.label}>
             <div className="space-y-2">
               {rows.map((row, i) => (
-                <div key={i} className="rounded border border-rule bg-white p-3">
+                <div key={i} className="rounded border border-line bg-white p-3">
                   <div className="flex items-start gap-2">
                     <input
                       value={row[columns[0].id] ?? ''}
@@ -168,7 +169,7 @@ export function DocEditor({
                       type="button"
                       aria-label="Remove this row"
                       onClick={() => setSection(section.id, rows.filter((_, at) => at !== i))}
-                      className="text-ink/30 transition hover:text-ink"
+                      className="text-ink40 transition hover:text-ink"
                     >
                       ×
                     </button>
@@ -185,7 +186,7 @@ export function DocEditor({
                           )
                         }
                         placeholder={column.label}
-                        className="rounded border border-rule px-2 py-1 text-xs text-ink outline-none focus:border-accent/60"
+                        className="rounded border border-line px-2 py-1 text-xs text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
                       />
                     ))}
                   </div>
@@ -199,12 +200,12 @@ export function DocEditor({
                     Object.fromEntries(columns.map((c) => [c.id, ''])),
                   ])
                 }
-                className="text-xs text-ink/45 hover:text-accent"
+                className="text-xs text-ink40 hover:text-accent"
               >
-                + add a row
+                + Add a row
               </button>
               {section.max && rows.length > section.max && (
-                <p className="text-xs text-ink/40">The slide shows the first {section.max}.</p>
+                <p className="text-xs text-ink40">The document shows the first {section.max}.</p>
               )}
             </div>
           </Field>
@@ -220,11 +221,11 @@ export function DocEditor({
             onClick={() => onRender(out)}
             className={
               i === 0
-                ? 'rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-ink/25'
-                : 'rounded-md border border-rule bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40'
+                ? 'rounded bg-accent px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-40'
+                : 'rounded border border-line bg-paper px-4 py-2.5 text-[13px] font-medium text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40'
             }
           >
-            {busy ? 'Making…' : out === 'pptx' ? 'Download the slide' : out === 'docx' ? 'Download as Word' : 'Download as PDF'}
+            {busy ? 'Producing…' : out === 'pptx' ? 'Download slides' : out === 'docx' ? 'Download Word' : 'Download PDF'}
           </button>
         ))}
       </div>
@@ -235,7 +236,7 @@ export function DocEditor({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="mt-5 block">
-      <span className="mb-1.5 block text-[11px] uppercase tracking-wide text-ink/40">{label}</span>
+      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">{label}</span>
       {children}
     </label>
   );

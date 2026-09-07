@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import type { Artefact } from '@/lib/db';
 import { formatById } from '@/lib/formats/registry';
 import { forget, recent, when } from '@/lib/library';
@@ -53,20 +52,17 @@ export default function Library() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12">
-      <Link href="/" className="text-xs text-ink/45 underline-offset-2 hover:text-accent hover:underline">
-        ← back
-      </Link>
-      <h1 className="mt-4 text-2xl font-light tracking-tight text-ink">What you have made</h1>
-      <p className="mt-1 text-sm text-ink/55">
-        On this device only. Nothing here has been shared with anyone.
+    <main className="mx-auto w-full max-w-4xl px-6 py-9">
+      <h1 className="text-[26px] font-semibold tracking-tight text-ink">Documents</h1>
+      <p className="mt-1.5 text-[14px] text-ink60">
+        Everything produced on this device. Re-issue in any format without generating again.
       </p>
 
-      {items === null && <p className="mt-8 text-sm text-ink/40">Looking…</p>}
+      {items === null && <p className="mt-8 text-sm text-ink40">Looking…</p>}
 
       {items?.length === 0 && (
-        <p className="mt-8 rounded-lg border border-dashed border-rule px-4 py-10 text-center text-sm text-ink/45">
-          Nothing yet. Make something and it will be here.
+        <p className="mt-8 rounded-lg border border-dashed border-line px-4 py-10 text-center text-sm text-ink40">
+          No documents yet. Anything you produce will be listed here.
         </p>
       )}
 
@@ -75,11 +71,11 @@ export default function Library() {
           const format = item.formatId ? formatById(item.formatId) : undefined;
           const outputs = format?.outputs ?? ['pptx'];
           return (
-            <li key={item.id} className="rounded-lg border border-rule bg-white px-4 py-3">
+            <li key={item.id} className="rounded-lg border border-line bg-paper px-4 py-3 shadow-card">
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] text-ink">{item.title}</p>
-                  <p className="mt-0.5 text-xs text-ink/40">
+                  <p className="truncate text-[14px] font-medium text-ink">{item.title}</p>
+                  <p className="mt-0.5 text-xs text-ink40">
                     {format?.name ?? 'Deck'} · {when(item.createdAt)}
                   </p>
                 </div>
@@ -90,19 +86,19 @@ export default function Library() {
                       type="button"
                       disabled={busy === item.id}
                       onClick={() => download(item, out)}
-                      className="rounded border border-rule px-2 py-1 text-xs text-ink/70 transition hover:border-accent hover:text-accent disabled:opacity-40"
+                      className="rounded border border-line px-2.5 py-1 text-[12px] text-ink60 transition hover:border-accent hover:text-accent disabled:opacity-40"
                     >
                       {out === 'pptx' ? 'Slide' : out === 'docx' ? 'Word' : 'PDF'}
                     </button>
                   ))}
                   <button
                     type="button"
-                    aria-label="Forget this"
+                    aria-label="Remove"
                     onClick={async () => {
                       await forget(item.id);
                       load();
                     }}
-                    className="px-1 text-ink/30 transition hover:text-ink"
+                    className="px-1 text-ink40 transition hover:text-ink"
                   >
                     ×
                   </button>

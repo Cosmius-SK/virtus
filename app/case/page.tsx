@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { summary, type Summary } from '@/lib/meter';
 import { money } from '@/lib/pricing';
 
@@ -33,31 +32,28 @@ export default function CasePage() {
   const costPerYear = (data?.medianCost ?? 0) * docsPerYear;
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
-      <Link href="/" className="text-xs text-ink/45 underline-offset-2 hover:text-accent hover:underline">
-        ← back
-      </Link>
-      <h1 className="mt-4 text-2xl font-light tracking-tight text-ink">What it costs</h1>
-      <p className="mt-1 text-sm text-ink/55">
-        Measured on this device, from real runs. Nothing here is estimated.
+    <main className="mx-auto w-full max-w-3xl px-6 py-9">
+      <h1 className="text-[26px] font-semibold tracking-tight text-ink">Usage and cost</h1>
+      <p className="mt-1.5 text-[14px] text-ink60">
+        Measured on this device from actual runs. Nothing in this section is estimated.
       </p>
 
       {data && data.runs > 0 ? (
         <>
           <div className="mt-6 grid grid-cols-3 gap-3">
-            <Stat label="Documents made" value={String(data.runs)} />
-            <Stat label="Typical time" value={`${data.medianSeconds.toFixed(1)}s`} />
-            <Stat label="Typical cost" value={money(data.medianCost)} />
+            <Stat label="Documents produced" value={String(data.runs)} />
+            <Stat label="Median time" value={`${data.medianSeconds.toFixed(1)}s`} />
+            <Stat label="Median cost" value={money(data.medianCost)} />
           </div>
-          <p className="mt-2 text-xs text-ink/40">
+          <p className="mt-2 text-xs text-ink40">
             Time is from pressing the button to having something to edit. Cost is the model&rsquo;s
             own token count at published rates — {money(data.totalCost)} spent here in total.
           </p>
 
           {data.byFormat.length > 1 && (
-            <div className="mt-5 rounded-lg border border-rule bg-white px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-ink/40">What was made</p>
-              <ul className="mt-1.5 space-y-0.5 text-sm text-ink/80">
+            <div className="mt-5 rounded-lg border border-line bg-white px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">By template</p>
+              <ul className="mt-1.5 space-y-0.5 text-sm text-ink80">
                 {data.byFormat.map((f) => (
                   <li key={f.formatId}>
                     {f.formatName} — {f.runs}
@@ -68,14 +64,14 @@ export default function CasePage() {
           )}
         </>
       ) : (
-        <p className="mt-6 rounded-lg border border-dashed border-rule px-4 py-8 text-center text-sm text-ink/45">
-          Nothing measured yet. Make a document and the real numbers appear here.
+        <p className="mt-6 rounded-lg border border-dashed border-line px-4 py-8 text-center text-sm text-ink40">
+          No measurements yet. Produce a document and the figures appear here.
         </p>
       )}
 
-      <h2 className="mt-10 text-lg font-light tracking-tight text-ink">And what it might save</h2>
-      <p className="mt-1 text-sm text-ink/55">
-        This half is arithmetic on assumptions, not measurement. Change them and see.
+      <h2 className="mt-10 text-[18px] font-semibold tracking-tight text-ink">Projected saving</h2>
+      <p className="mt-1 text-sm text-ink60">
+        Arithmetic on assumptions, not measurement. Adjust them and the figures follow.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -84,7 +80,7 @@ export default function CasePage() {
         <Dial label="Minutes by hand" value={minutes} onChange={setMinutes} min={5} max={180} />
       </div>
 
-      <div className="mt-5 rounded-lg border border-rule bg-white px-5 py-4">
+      <div className="mt-5 rounded-lg border border-line bg-white px-5 py-4">
         <p className="text-sm leading-relaxed text-ink">
           {people} people writing {perWeek} report{perWeek === 1 ? '' : 's'} a week, at {minutes}{' '}
           minutes each by hand and about three minutes here, is{' '}
@@ -93,13 +89,13 @@ export default function CasePage() {
           group.
         </p>
         {data?.medianCost ? (
-          <p className="mt-2 text-sm leading-relaxed text-ink/70">
+          <p className="mt-2 text-sm leading-relaxed text-ink80">
             Those {docsPerYear.toLocaleString()} documents would cost about{' '}
             <strong className="font-medium text-ink">{money(costPerYear)}</strong> a year to run, or{' '}
             {money(costPerYear / people / 12)} per person per month.
           </p>
         ) : (
-          <p className="mt-2 text-sm text-ink/50">
+          <p className="mt-2 text-sm text-ink40">
             Make one document and the running cost appears here too.
           </p>
         )}
@@ -122,8 +118,8 @@ export default function CasePage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-rule bg-white px-4 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-ink/40">{label}</p>
+    <div className="rounded-lg border border-line bg-paper px-4 py-3 shadow-card">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">{label}</p>
       <p className="mt-0.5 text-xl font-light tabular-nums text-ink">{value}</p>
     </div>
   );
@@ -144,14 +140,14 @@ function Dial({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] uppercase tracking-wide text-ink/40">{label}</span>
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">{label}</span>
       <input
         type="number"
         value={value}
         min={min}
         max={max}
         onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))}
-        className="w-full rounded border border-rule px-2 py-1.5 text-sm tabular-nums text-ink outline-none focus:border-accent/60"
+        className="w-full rounded border border-line px-2 py-1.5 text-sm tabular-nums text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
       />
     </label>
   );

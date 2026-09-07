@@ -1,142 +1,177 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Capture } from '@/components/Capture';
+import { Compose, type Proposal, type Turn } from '@/components/Compose';
 import { DocEditor } from '@/components/DocEditor';
-import { FormatPicker, type FormatSummary } from '@/components/FormatPicker';
 import { OutlineEditor } from '@/components/OutlineEditor';
-import { db, newId } from '@/lib/db';
-import { FORMATS, formatById } from '@/lib/formats/registry';
-import type { FormatDoc } from '@/lib/formats/types';
 import { Problem } from '@/components/Problem';
-import { Working } from '@/components/Working';
-import { clearDraft } from '@/lib/drafts';
 import { TeachIt } from '@/components/TeachIt';
+import { TemplateStore } from '@/components/TemplateStore';
+import { Working } from '@/components/Working';
+import { db, newId } from '@/lib/db';
+import { clearDraft } from '@/lib/drafts';
+import { formatById } from '@/lib/formats/registry';
+import type { FormatDef, FormatDoc } from '@/lib/formats/types';
 import { friendly, type Friendly } from '@/lib/friendly';
+import { recordRun } from '@/lib/meter';
 import { fixNames } from '@/lib/names';
 import { unknownNames, type Notice } from '@/lib/org/notice';
 import { add, all, context } from '@/lib/org/store';
 import type { EntryKind } from '@/lib/org/types';
-import { SAMPLES } from '@/lib/samples';
-import { recordRun } from '@/lib/meter';
 import { ownerId } from '@/lib/owner';
 import type { Outline, Structure } from '@/lib/types';
 
-/** The multi-slide deck is not a one-pager format, so it sits beside them. */
-const DECK: FormatSummary = {
-  id: 'deck',
-  name: 'Full deck',
-  description: 'Several slides — the argument first, as an outline you approve before anything is drawn.',
-  outputs: ['pptx'],
-};
-
-const CHOICES: FormatSummary[] = [
-  ...FORMATS.map(({ id, name, description, outputs }) => ({ id, name, description, outputs })),
-  DECK,
-];
-
-type Stage = 'capture' | 'doc' | 'outline';
+type Stage = 'compose' | 'doc' | 'outline';
+type Mode = 'templates' | 'freeform';
 
 export default function Page() {
-  const [stage, setStage] = useState<Stage>('capture');
+  const [stage, setStage] = useState<Stage>('compose');
+  const [mode, setMode] = useState<Mode>('templates');
   const [note, setNote] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [problem, setProblem] = useState<Friendly | null>(null);
+  const [notices, setNotices] = useState<Notice[]>([]);
+
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
 
   const [formatId, setFormatId] = useState<string | null>(null);
   const [doc, setDoc] = useState<FormatDoc | null>(null);
   const [structure, setStructure] = useState<Structure | null>(null);
   const [outline, setOutline] = useState<Outline | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
-  const [took, setTook] = useState<number | null>(null);
-  /** What to repeat when someone presses Try again. */
   const [lastPick, setLastPick] = useState<string | null>(null);
-  /** Names the note used that Virtus does not know yet (§3). */
-  const [notices, setNotices] = useState<Notice[]>([]);
 
   const format = formatId ? formatById(formatId) : undefined;
 
-  async function keepNote(structure?: Structure): Promise<string> {
+  async function keepNote(text: string, structure?: Structure): Promise<string> {
     const id = newId();
     const now = Date.now();
-    await db.notes.put({
-      id,
-      ownerId: ownerId(),
-      text: note,
-      structure,
-      createdAt: now,
-      updatedAt: now,
-    });
+    await db.notes.put({ id, ownerId: ownerId(), text, structure, createdAt: now, updatedAt: now });
     setNoteId(id);
     return id;
   }
 
-  async function pick(id: string) {
-    if (note.trim().length < 20) {
-      setProblem({ message: 'Put a few sentences in the box first.', retry: false });
-      return;
-    }
+  /** The reading pass, shared by both modes. */
+  async function build(id: string, source: string, label: string) {
     setBusyId(id);
     setLastPick(id);
     setProblem(null);
     const started = Date.now();
     try {
-      const name = CHOICES.find((c) => c.id === id)?.name ?? id;
       const known = await all();
       const org = await context();
+      // Names are put back before the model reads it; the box is left as typed.
+      const corrected = fixNames(source, known.map((e) => e.name));
 
-      // What goes to the model has the names put back (lesson 12.1). The box is
-      // left exactly as typed — correcting what someone can see themselves is
-      // presumptuous; correcting what the model sees is the whole point.
-      const corrected = fixNames(note, known.map((e) => e.name));
-
-      if (id === 'deck') {
-        const s = await post<{ structure: Structure; usage: Usage }>('/api/structure', {
-          note: corrected,
-        });
-        const o = await post<{ outline: Outline; usage: Usage }>('/api/outline', {
-          structure: s.structure,
-          ask: '',
-        });
-        await keepNote(s.structure);
-        setStructure(s.structure);
-        setOutline(o.outline);
-        setStage('outline');
-        // Two calls make one document, so they are metered as one run.
-        await recordRun({
-          formatId: id,
-          formatName: name,
-          model: s.usage.model,
-          inputTokens: s.usage.inputTokens + o.usage.inputTokens,
-          outputTokens: s.usage.outputTokens + o.usage.outputTokens,
-          ms: Date.now() - started,
-        });
-      } else {
-        const r = await post<{ doc: FormatDoc; usage: Usage }>(`/api/format/${id}`, {
-          note: corrected,
-          org,
-        });
-        await keepNote();
-        setFormatId(id);
-        setDoc(r.doc);
-        setStage('doc');
-        await recordRun({
-          formatId: id,
-          formatName: name,
-          model: r.usage.model,
-          inputTokens: r.usage.inputTokens,
-          outputTokens: r.usage.outputTokens,
-          ms: Date.now() - started,
-        });
-      }
-      setTook(Date.now() - started);
-      setNotices(unknownNames(note, known));
+      const r = await post<{ doc: FormatDoc; usage: Usage }>(`/api/format/${id}`, {
+        note: corrected,
+        org,
+      });
+      await keepNote(source);
+      setFormatId(id);
+      setDoc(r.doc);
+      setStage('doc');
+      setNotices(unknownNames(source, known));
       void clearDraft();
+      await recordRun({
+        formatId: id,
+        formatName: label,
+        model: r.usage.model,
+        inputTokens: r.usage.inputTokens,
+        outputTokens: r.usage.outputTokens,
+        ms: Date.now() - started,
+      });
     } catch (err) {
       setProblem(friendly(err));
     } finally {
       setBusyId(null);
     }
+  }
+
+  /**
+   * The custom deck keeps its own path: an argument approved as an outline
+   * before any slide exists (§6). No template fits a deck whose shape is the
+   * decision being made, so it is offered beside the store rather than in it.
+   */
+  async function buildDeck() {
+    if (note.trim().length < 20) {
+      setProblem({ message: 'Add a few sentences about what happened first.', retry: false });
+      return;
+    }
+    setBusyId('deck');
+    setLastPick('deck');
+    setProblem(null);
+    const started = Date.now();
+    try {
+      const known = await all();
+      const corrected = fixNames(note, known.map((e) => e.name));
+      const s = await post<{ structure: Structure; usage: Usage }>('/api/structure', {
+        note: corrected,
+      });
+      const o = await post<{ outline: Outline; usage: Usage }>('/api/outline', {
+        structure: s.structure,
+        ask: '',
+      });
+      await keepNote(note, s.structure);
+      setStructure(s.structure);
+      setOutline(o.outline);
+      setStage('outline');
+      setNotices(unknownNames(note, known));
+      void clearDraft();
+      await recordRun({
+        formatId: 'deck',
+        formatName: 'Custom deck',
+        model: s.usage.model,
+        inputTokens: s.usage.inputTokens + o.usage.inputTokens,
+        outputTokens: s.usage.outputTokens + o.usage.outputTokens,
+        ms: Date.now() - started,
+      });
+    } catch (err) {
+      setProblem(friendly(err));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function chooseTemplate(chosen: FormatDef) {
+    if (note.trim().length < 20) {
+      setProblem({
+        message: 'Add a few sentences about what happened before choosing a template.',
+        retry: false,
+      });
+      return;
+    }
+    void build(chosen.id, note, chosen.name);
+  }
+
+  async function sendTurn(text: string) {
+    const next: Turn[] = [...turns, { role: 'user', content: text }];
+    setTurns(next);
+    setProposal(null);
+    setBusyId('compose');
+    setProblem(null);
+    try {
+      const org = await context();
+      const r = await post<{ reply: string; ready: boolean; proposal: Proposal | null }>(
+        '/api/compose',
+        { messages: next, org },
+      );
+      setTurns([...next, { role: 'assistant', content: r.reply }]);
+      setProposal(r.ready ? r.proposal : null);
+    } catch (err) {
+      setProblem(friendly(err));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function acceptProposal(accepted: Proposal) {
+    // Everything the person said, in order, is the note. The conversation was
+    // how it was gathered, not a separate thing to summarise.
+    const said = turns.filter((t) => t.role === 'user').map((t) => t.content).join('\n\n');
+    void build(accepted.formatId, said, accepted.formatName);
   }
 
   async function render(as: 'pptx' | 'docx' | 'pdf' = 'pptx') {
@@ -188,164 +223,205 @@ export default function Page() {
     }
   }
 
-  return (
-    <main>
-      {stage === 'capture' && (
-        <section className="mx-auto w-full max-w-3xl px-6 py-12">
-          <header className="mb-7">
-            <h1 className="text-2xl font-light tracking-tight text-ink">Virtus</h1>
-            <p className="mt-1 text-sm text-ink/55">
-              Put the mess in. Choose what it should become. Fix it before anything is made.
-            </p>
-          </header>
+  function startOver() {
+    setStage('compose');
+    setProposal(null);
+  }
 
-          <Capture text={note} onChange={setNote} disabled={busyId !== null} />
-
-          {!note.trim() && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-ink/40">Or try one:</span>
-              {SAMPLES.map((sample) => (
-                <button
-                  key={sample.label}
-                  type="button"
-                  onClick={() => setNote(sample.note)}
-                  className="rounded-full border border-rule bg-white px-3 py-1 text-xs text-ink/70 transition hover:border-accent hover:text-accent"
-                >
-                  {sample.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {busyId && (
-            <div className="mt-6">
-              <Working what={CHOICES.find((c) => c.id === busyId)?.name ?? 'your document'} />
-            </div>
-          )}
-
-          {problem && (
-            <div className="mt-6">
-              <Problem problem={problem} onRetry={() => busyId === null && lastPick && pick(lastPick)} />
-            </div>
-          )}
-
-          <div className="mt-8">
-            <FormatPicker
-              formats={CHOICES}
-              onPick={pick}
-              disabled={busyId !== null}
-              busyId={busyId}
-            />
-          </div>
-        </section>
-      )}
-
-      {stage === 'doc' && format && doc && (
+  if (stage === 'doc' && format && doc) {
+    return (
+      <>
         <DocEditor
           format={format}
           doc={doc}
           onChange={setDoc}
           onRender={render}
           busy={busyId !== null}
-          onBack={() => setStage('capture')}
+          onBack={startOver}
         />
-      )}
+        {notices.length > 0 && (
+          <div className="mx-auto max-w-3xl px-6 pb-8">
+            <TeachIt
+              notices={notices}
+              onTeach={async (name: string, kind: EntryKind) => {
+                await add(kind, name, '');
+                setNotices((n) => n.filter((x) => x.name !== name));
+              }}
+              onDismiss={(name: string) => setNotices((n) => n.filter((x) => x.name !== name))}
+            />
+          </div>
+        )}
+        {problem && (
+          <div className="mx-auto max-w-3xl px-6 pb-8">
+            <Problem problem={problem} onRetry={() => render()} />
+          </div>
+        )}
+      </>
+    );
+  }
 
-      {stage === 'outline' && outline && (
-        <>
-          <OutlineEditor
-            outline={outline}
-            onChange={setOutline}
-            onRender={render}
-            busy={busyId !== null}
-            onBack={() => setStage('capture')}
-          />
-          {structure && <WhatYouSaid structure={structure} />}
-        </>
-      )}
+  if (stage === 'outline' && outline) {
+    return (
+      <>
+        <OutlineEditor
+          outline={outline}
+          onChange={setOutline}
+          onRender={() => render()}
+          busy={busyId !== null}
+          onBack={startOver}
+        />
+        {structure && <Extracted structure={structure} />}
+        {problem && (
+          <div className="mx-auto max-w-3xl px-6 pb-8">
+            <Problem problem={problem} onRetry={() => render()} />
+          </div>
+        )}
+      </>
+    );
+  }
 
-
-      {(stage === 'doc' || stage === 'outline') && notices.length > 0 && (
-        <div className="mx-auto max-w-3xl px-6 pb-2">
-          <TeachIt
-            notices={notices}
-            onTeach={async (name: string, kind: EntryKind) => {
-              await add(kind, name, '');
-              setNotices((n) => n.filter((x) => x.name !== name));
-            }}
-            onDismiss={(name: string) => setNotices((n) => n.filter((x) => x.name !== name))}
-          />
-        </div>
-      )}
-
-      {problem && stage !== 'capture' && (
-        <div className="mx-auto max-w-3xl px-6 pb-6">
-          <Problem problem={problem} onRetry={() => render()} />
-        </div>
-      )}
-
-      <Footer took={took} />
-    </main>
-  );
-}
-
-/** Nothing invented (§8.5): the note as Virtus read it, beside what it made. */
-function WhatYouSaid({ structure }: { structure: Structure }) {
   return (
-    <details className="mx-auto max-w-3xl px-6 pb-10">
-      <summary className="cursor-pointer text-xs text-ink/45 hover:text-accent">
-        What Virtus read in your note
-      </summary>
-      <div className="mt-3 space-y-3 rounded-lg border border-rule bg-white px-4 py-4 text-sm">
-        <Row label="Points" items={structure.points} />
-        <Row label="Left open" items={structure.questions} />
-        {structure.next && <Row label="Next" items={[structure.next]} />}
-        <Row label="Named" items={structure.mentions} />
-      </div>
-    </details>
-  );
-}
+    <div className="mx-auto w-full max-w-6xl px-6 py-9">
+      <header className="mb-7">
+        <h1 className="text-[26px] font-semibold tracking-tight text-ink">New document</h1>
+        <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-ink60">
+          Provide the detail once. Virtus extracts the facts, shows them for review, and produces
+          the document only when you are satisfied — as slides, Word or PDF.
+        </p>
+      </header>
 
-function Row({ label, items }: { label: string; items: string[] }) {
-  if (!items.length) return null;
-  return (
-    <div>
-      <p className="text-[11px] uppercase tracking-wide text-ink/40">{label}</p>
-      <ul className="mt-1 space-y-0.5 text-ink/80">
-        {items.map((item, i) => (
-          <li key={i}>{item}</li>
+      <div className="mb-6 inline-flex rounded-lg border border-line bg-paper p-1 shadow-card">
+        {(
+          [
+            ['templates', 'From a template'],
+            ['freeform', 'Free-form'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setMode(id)}
+            className={`rounded px-4 py-1.5 text-[13px] font-medium transition ${
+              mode === id ? 'bg-ink text-white' : 'text-ink60 hover:text-ink'
+            }`}
+          >
+            {label}
+          </button>
         ))}
-      </ul>
+      </div>
+
+      {mode === 'templates' ? (
+        <>
+          <div className="mb-6 rounded-lg border border-line bg-paper p-5 shadow-card">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
+              What happened
+            </label>
+            <Capture text={note} onChange={setNote} disabled={busyId !== null} />
+          </div>
+
+          {busyId && busyId !== 'render' && (
+            <div className="mb-6">
+              <Working what={formatById(busyId)?.name ?? 'your document'} />
+            </div>
+          )}
+          {problem && (
+            <div className="mb-6">
+              <Problem
+                problem={problem}
+                onRetry={() => lastPick && note && build(lastPick, note, lastPick)}
+              />
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={busyId !== null}
+            onClick={buildDeck}
+            className="group mb-8 flex w-full items-center gap-4 rounded-lg border border-line bg-paper p-4 text-left shadow-card transition hover:border-accent hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-accentTint text-accentDark">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <rect x="3" y="4" width="18" height="12" rx="1.5" />
+                <path d="M7 20h10M12 16v4" />
+              </svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-medium text-ink group-hover:text-accent">
+                {busyId === 'deck' ? 'Building the argument…' : 'Custom deck'}
+              </span>
+              <span className="mt-0.5 block text-[12px] leading-snug text-ink60">
+                No fixed template. Virtus proposes the argument as an editable outline — reorder,
+                cut and merge — and draws the slides only from what you approve.
+              </span>
+            </span>
+            <span className="shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink40">
+              Slides
+            </span>
+          </button>
+
+          <TemplateStore onSelect={chooseTemplate} disabled={busyId !== null} busyId={busyId} />
+        </>
+      ) : (
+        <div className="max-w-3xl">
+          <Compose
+            turns={turns}
+            proposal={proposal}
+            thinking={busyId === 'compose'}
+            onSend={sendTurn}
+            onAccept={acceptProposal}
+            disabled={busyId !== null}
+          />
+          {busyId && busyId !== 'compose' && (
+            <div className="mt-5">
+              <Working what={formatById(busyId)?.name ?? 'your document'} />
+            </div>
+          )}
+          {problem && (
+            <div className="mt-5">
+              <Problem problem={problem} onRetry={() => setProblem(null)} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function Footer({ took }: { took: number | null }) {
-  const [where, setWhere] = useState<{ provider: string; models: string[] } | null>(null);
-  useEffect(() => {
-    fetch('/api/where')
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setWhere)
-      .catch(() => {});
-  }, []);
+/**
+ * What was read out of the input, shown beside what was made from it.
+ *
+ * Rule 4 is only credible if it can be checked. A claim with no root in the
+ * note is visible here rather than merely plausible on the slide.
+ */
+function Extracted({ structure }: { structure: Structure }) {
+  const rows: [string, string[]][] = [
+    ['Points made', structure.points],
+    ['Left open', structure.questions],
+    ...(structure.next ? ([['Next step', [structure.next]]] as [string, string[]][]) : []),
+    ['Named', structure.mentions],
+  ];
   return (
-    <footer className="mx-auto max-w-3xl px-6 pb-10 text-[11px] text-ink/35">
-      Virtus {process.env.NEXT_PUBLIC_VIRTUS_VERSION}
-      {took !== null && ` · read in ${(took / 1000).toFixed(1)}s`}
-      {where && ` · sent to ${where.models.join(', ')} via ${where.provider}`}
-      {' · nothing is shared; everything stays on this device · '}
-      <a href="/organisation" className="underline underline-offset-2 hover:text-accent">
-        what it knows
-      </a>
-      {' · '}
-      <a href="/library" className="underline underline-offset-2 hover:text-accent">
-        what you have made
-      </a>
-      {' · '}
-      <a href="/case" className="underline underline-offset-2 hover:text-accent">
-        what it costs
-      </a>
-    </footer>
+    <details className="mx-auto max-w-3xl px-6 pb-10">
+      <summary className="cursor-pointer text-[12px] text-ink40 transition hover:text-accent">
+        What Virtus extracted from your input
+      </summary>
+      <div className="mt-3 space-y-4 rounded-lg border border-line bg-paper px-5 py-4 shadow-card">
+        {rows.map(([label, items]) =>
+          items.length ? (
+            <div key={label}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
+                {label}
+              </p>
+              <ul className="mt-1.5 space-y-1 text-[13px] leading-relaxed text-ink80">
+                {items.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null,
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -355,10 +431,7 @@ interface Usage {
   outputTokens: number;
 }
 
-/**
- * Bounded, because a request that never returns is worse than one that fails —
- * there is nothing to say to the room while a spinner turns forever.
- */
+/** Bounded: a request that never returns leaves nothing to say to the room. */
 const TIMEOUT_MS = 90_000;
 
 async function post<T>(url: string, body: unknown): Promise<T> {
@@ -382,8 +455,7 @@ async function errorFrom(res: Response): Promise<string> {
     return 'Your network blocked this request — it returned a web page rather than an answer.';
   }
   try {
-    const json = JSON.parse(text) as { error?: string };
-    return json.error ?? `Request failed (${res.status}).`;
+    return (JSON.parse(text) as { error?: string }).error ?? `Request failed (${res.status}).`;
   } catch {
     return `Request failed (${res.status}).`;
   }
