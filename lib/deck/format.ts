@@ -1,7 +1,8 @@
 import 'server-only';
 import PptxGenJS from 'pptxgenjs';
 import type { FormatDef, FormatDoc, Section } from '@/lib/formats/types';
-import { BRAND, FOOTER, STATUS } from './master';
+import { BRAND, FOOTER } from './master';
+import { STATUS } from './status';
 
 /**
  * One renderer for every format (see lib/formats/types.ts).

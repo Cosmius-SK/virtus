@@ -3,6 +3,47 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.13.0 — An admin space
+
+Twenty-six templates is a starting library, not a product. A team's own
+documents are not in it and never will be, so the question is whether they can
+add one — and until now the answer was "open the registry and write TypeScript".
+
+- **A template store somebody can add to.** Name it, say who reads it, list its
+  sections. The engine writes the schema, the prompt, the editing screen and all
+  three outputs from that — which is what the "formats are data" decision was
+  for, cashed in. Ids are never shown: they matter to the engine and to nobody
+  using it. The preview is the same one the store draws, updating as you type.
+- **A house style, read out of a file the firm already uses.** Upload a .pptx,
+  .potx, .docx or .dotx and every document adopts its accents and typefaces. The
+  alternative was a colour picker, which asks the wrong person the wrong
+  question — nobody knows their firm's accent colour as a hex value. It reads
+  the theme and nothing else: no layouts, no masters, no logos. Status colours
+  are exempt, because a firm whose brand colour is red does not get to make
+  "Delayed" look calm. Nothing about the uploaded file is stored.
+- **A broadcast strip**, editable without a redeploy, for things that are true
+  now and will not be true forever. Deliberately separate from the
+  classification line, which is a control set by whoever deployed this and
+  cannot be edited from inside — a control the people bound by it can switch off
+  is not a control.
+- Templates built here **travel with the request** rather than being looked up,
+  the way the organisation model already does. The endpoints stay stateless,
+  which is the property that keeps the MCP plugin a wrapper rather than a second
+  pipeline. Anything arriving that way is validated before a prompt is built
+  from it.
+- The palette became **request-scoped** to make the house style safe. A
+  module-level variable assigned before rendering is a race between two requests
+  on one server, and the way it fails is one firm's document coming out in
+  another firm's colours — wrong in a way that still opens, still looks
+  finished, and has already been sent.
+- **An organisation to try it against.** The world model is the feature, and an
+  empty one demonstrates nothing.
+
+Honest limitation, said on the screen rather than discovered: the 26 templates
+that ship are part of the application and are on every device. One built here is
+not — it is in that browser until there is a shared store. Every template
+exports and imports as a file, which is a stopgap that admits to being one.
+
 ## 0.12.0 — Two front doors
 
 Twenty-six templates in a flat list is not a choice, it is a search problem. And

@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { add, all, forget, update } from '@/lib/org/store';
+import { SAMPLE_ORG } from '@/lib/org/sample';
+import { add, addMany, all, forget, update } from '@/lib/org/store';
 import { KINDS, type Entry, type EntryKind } from '@/lib/org/types';
 
 /**
@@ -42,9 +43,26 @@ export default function Organisation() {
       </p>
 
       {entries?.length === 0 && (
-        <p className="mt-6 rounded-lg border border-dashed border-line px-4 py-8 text-center text-sm text-ink40">
-          Nothing recorded yet. Produce a document and Virtus will offer to learn the names you used.
-        </p>
+        <div className="mt-6 rounded-lg border border-dashed border-line px-4 py-8 text-center">
+          <p className="text-sm text-ink60">
+            Nothing recorded yet. Produce a document and Virtus will offer to learn the names you
+            used, or add them below.
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              await addMany(SAMPLE_ORG);
+              load();
+            }}
+            className="mt-3 rounded border border-line bg-paper px-3.5 py-1.5 text-[12px] font-medium text-ink transition hover:border-accent hover:text-accent"
+          >
+            Load a sample organisation
+          </button>
+          <p className="mx-auto mt-2 max-w-md text-[11px] leading-relaxed text-ink40">
+            A fictional firm, to see the difference this makes. Everything it adds is editable and
+            removable.
+          </p>
+        </div>
       )}
 
       {KINDS.map((group) => {

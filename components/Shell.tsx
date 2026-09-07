@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Mark } from './Logo';
+import { useSettings } from '@/lib/admin/use';
 
 /**
  * The application frame.
@@ -17,7 +18,27 @@ const NAV = [
   { href: '/library', label: 'Documents' },
   { href: '/organisation', label: 'Organisation' },
   { href: '/case', label: 'Usage' },
+  { href: '/admin', label: 'Admin' },
 ];
+
+/**
+ * Two strips, and they are not the same thing.
+ *
+ * The classification line is a control. It says what may be typed into this
+ * deployment, it is set by whoever deployed it, and it is not editable from
+ * inside the application — a control the people bound by it can switch off is
+ * not a control.
+ *
+ * The broadcast is operational and temporary: a trial, an outage, a freeze. It
+ * is set in the admin space and it is meant to change. Keeping them apart is
+ * the whole point; merging them would make the governance line something an
+ * admin can quietly rewrite.
+ */
+const TONES = {
+  info: 'border-line bg-lineSoft text-ink80',
+  warn: 'border-amber-300 bg-amber-50 text-amber-900',
+  alert: 'border-red-300 bg-red-50 text-red-900',
+} as const;
 
 export function Shell({
   children,
@@ -27,6 +48,8 @@ export function Shell({
   classification?: string;
 }) {
   const path = usePathname();
+  const { settings } = useSettings();
+  const banner = settings?.banner;
   if (path === '/unlock') return <>{children}</>;
 
   return (
@@ -63,6 +86,14 @@ export function Shell({
           )}
         </div>
       </header>
+
+      {banner?.on && banner.text.trim() && (
+        <div className={`border-b ${TONES[banner.tone]}`} role="status">
+          <p className="mx-auto w-full max-w-6xl px-6 py-2 text-[12.5px] leading-relaxed">
+            {banner.text}
+          </p>
+        </div>
+      )}
 
       <main className="flex-1">{children}</main>
 

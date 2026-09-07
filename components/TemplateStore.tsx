@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { TemplatePreview } from './TemplatePreview';
-import { FORMATS } from '@/lib/formats/registry';
-import type { Category, FormatDef } from '@/lib/formats/types';
+import { CATEGORIES, type Category, type FormatDef } from '@/lib/formats/types';
 
 /**
  * The template store.
@@ -12,13 +11,7 @@ import type { Category, FormatDef } from '@/lib/formats/types';
  * document format from a list of names is guesswork, and guesswork at this step
  * costs a full generation to correct.
  */
-const ORDER: Category[] = [
-  'Project & delivery',
-  'Operations',
-  'Engineering',
-  'Requirements & testing',
-  'Governance packs',
-];
+const ORDER: readonly Category[] = CATEGORIES;
 
 const OUTPUT_LABEL: Record<string, string> = {
   pptx: 'Slides',
@@ -27,10 +20,13 @@ const OUTPUT_LABEL: Record<string, string> = {
 };
 
 export function TemplateStore({
+  formats,
   onSelect,
   disabled,
   busyId,
 }: {
+  /** Everything available on this device: what ships, plus what was built here. */
+  formats: FormatDef[];
   onSelect: (format: FormatDef) => void;
   disabled: boolean;
   busyId: string | null;
@@ -40,12 +36,12 @@ export function TemplateStore({
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return FORMATS.filter(
+    return formats.filter(
       (f) =>
         (category === 'All' || f.category === category) &&
         (!q || `${f.name} ${f.description} ${f.audience}`.toLowerCase().includes(q)),
     );
-  }, [query, category]);
+  }, [formats, query, category]);
 
   const grouped = ORDER.map((c) => [c, shown.filter((f) => f.category === c)] as const).filter(
     ([, list]) => list.length > 0,

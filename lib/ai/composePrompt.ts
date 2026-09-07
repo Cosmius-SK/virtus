@@ -1,6 +1,7 @@
 import 'server-only';
 import { orgPrompt, type OrgContext } from '@/lib/org/types';
 import { FORMATS } from '@/lib/formats/registry';
+import type { FormatDef } from '@/lib/formats/types';
 
 /**
  * Free style: a short conversation that ends in a proposal, not a document.
@@ -14,8 +15,11 @@ import { FORMATS } from '@/lib/formats/registry';
  * thing this product exists not to be — a generator whose output has to be
  * rewritten, which is most of the work.
  */
-export function COMPOSE_SYSTEM(org?: OrgContext): string {
-  const templates = FORMATS.map(
+export function COMPOSE_SYSTEM(org?: OrgContext, extra: FormatDef[] = []): string {
+  // Templates built in the admin space are proposable too. A conversation that
+  // could only reach the shipped twenty-six would quietly make the admin screen
+  // half a feature — you could build a template and then never be offered it.
+  const templates = [...FORMATS, ...extra].map(
     (f) => `- ${f.id} (${f.name}, ${f.category}): ${f.description}`,
   ).join('\n');
 

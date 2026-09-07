@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { STATUS_NAMES } from '@/lib/deck/master';
+import { STATUS_NAMES } from '@/lib/deck/status';
 import type { FormatDef, Section } from './types';
 
 /**
@@ -31,6 +31,18 @@ function sectionSchema(section: Section): z.ZodTypeAny {
       return z.object(shape).describe(section.hint);
     }
   }
+}
+
+/**
+ * The schema for one section on its own.
+ *
+ * A rewrite of a single section must not be able to touch the others. Asking
+ * for the whole document and keeping one field would still pay for the whole
+ * document, and would still let a good paragraph move underneath somebody who
+ * only asked about the one below it.
+ */
+export function schemaForSection(section: Section) {
+  return z.object({ value: sectionSchema(section) });
 }
 
 export function schemaFor(format: FormatDef) {

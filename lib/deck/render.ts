@@ -1,7 +1,7 @@
 import 'server-only';
 import PptxGenJS from 'pptxgenjs';
 import type { Outline, OutlineSlide } from '@/lib/types';
-import { BRAND, CHART_SERIES, FOOTER, GRID, MASTER } from './master';
+import { BRAND, chartSeries, FOOTER, GRID, MASTER } from './master';
 
 /**
  * The approved outline becomes a real .pptx (§6).
@@ -267,7 +267,7 @@ function chart(pptx: PptxGenJS, slide: Slide, s: OutlineSlide): void {
       w: GRID.bodyW,
       h: GRID.bodyH,
       barDir: 'col',
-      chartColors: [...CHART_SERIES],
+      chartColors: chartSeries(),
       showLegend: false,
       showValue: true,
       dataLabelFontFace: BRAND.face,

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Artefact } from '@/lib/db';
-import { formatById } from '@/lib/formats/registry';
+import { useSettings } from '@/lib/admin/use';
+import { findFormat, useFormats } from '@/lib/formats/all';
 import { forget, recent, when } from '@/lib/library';
 
 /**
@@ -13,6 +14,8 @@ import { forget, recent, when } from '@/lib/library';
  * terminates" (§8.2) — a decision already made should not be paid for again.
  */
 export default function Library() {
+  const { custom } = useFormats();
+  const { settings } = useSettings();
   const [items, setItems] = useState<Artefact[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -35,7 +38,15 @@ export default function Library() {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item.kind === 'deck' ? { outline: item.outline } : { doc: item.doc }),
+        body: JSON.stringify(
+          item.kind === 'deck'
+            ? { outline: item.outline, house: settings?.house }
+            : {
+                doc: item.doc,
+                format: custom.find((f) => f.id === item.formatId),
+                house: settings?.house,
+              },
+        ),
       });
       if (!res.ok) return;
       const blob = await res.blob();
@@ -68,7 +79,7 @@ export default function Library() {
 
       <ul className="mt-6 space-y-2">
         {items?.map((item) => {
-          const format = item.formatId ? formatById(item.formatId) : undefined;
+          const format = item.formatId ? findFormat(item.formatId, custom) : undefined;
           const outputs = format?.outputs ?? ['pptx'];
           return (
             <li key={item.id} className="rounded-lg border border-line bg-paper px-4 py-3 shadow-card">

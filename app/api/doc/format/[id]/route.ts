@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
+import { withHouse } from '@/lib/deck/master';
+import { houseFrom } from '@/lib/house';
 import { renderDocx } from '@/lib/docs/format';
 import { deckFilename } from '@/lib/deck/render';
-import { formatById } from '@/lib/formats/registry';
+import { resolveFormat } from '@/lib/formats/resolve';
 import { schemaFor } from '@/lib/formats/schema';
 import type { FormatDoc } from '@/lib/formats/types';
 
@@ -10,25 +12,32 @@ export const runtime = 'nodejs';
 /** Approved fields → a Word document. No model call happens here. */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const format = formatById(id);
-  if (!format) return NextResponse.json({ error: 'No such format.' }, { status: 404 });
-  if (!format.outputs.includes('docx')) {
-    return NextResponse.json({ error: 'That format is not a document.' }, { status: 400 });
-  }
 
-  let doc: FormatDoc;
+  // The body is read before the format is resolved, because a template built
+  // in the admin space travels with the request rather than being looked up.
+  let body: { doc?: unknown; format?: unknown; house?: unknown };
   try {
-    const body = (await req.json()) as { doc?: unknown };
-    const parsed = schemaFor(format).safeParse(body.doc);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Send fields from the reading step.' }, { status: 400 });
-    }
-    doc = parsed.data as FormatDoc;
+    body = (await req.json()) as { doc?: unknown; format?: unknown; house?: unknown };
   } catch {
     return NextResponse.json({ error: 'Send JSON with a doc.' }, { status: 400 });
   }
 
-  const buffer = await renderDocx(format, doc);
+  const resolved = resolveFormat(id, body.format);
+  if ('error' in resolved) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+  }
+  const { format } = resolved;
+  if (!format.outputs.includes('docx')) {
+    return NextResponse.json({ error: 'That template is not a document.' }, { status: 400 });
+  }
+
+  const parsed = schemaFor(format).safeParse(body.doc);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Send fields from the reading step.' }, { status: 400 });
+  }
+  const doc = parsed.data as FormatDoc;
+
+  const buffer = await withHouse(houseFrom(body.house), () => renderDocx(format, doc));
   const name = deckFilename(`${doc.title} ${format.name}`).replace(/\.pptx$/, '.docx');
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

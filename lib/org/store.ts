@@ -34,6 +34,22 @@ export async function add(kind: EntryKind, name: string, about: string): Promise
   });
 }
 
+/** Several at once, for the sample. One write, so the page settles in one go. */
+export async function addMany(rows: { kind: EntryKind; name: string; about: string }[]) {
+  const now = Date.now();
+  await db.org.bulkPut(
+    rows.map((row) => ({
+      id: crypto.randomUUID(),
+      ownerId: ownerId(),
+      kind: row.kind,
+      name: row.name.trim(),
+      about: row.about.trim(),
+      createdAt: now,
+      updatedAt: now,
+    })),
+  );
+}
+
 export async function update(id: string, part: Partial<Pick<Entry, 'name' | 'about' | 'kind'>>) {
   await db.org.update(id, { ...part, updatedAt: Date.now() });
 }
