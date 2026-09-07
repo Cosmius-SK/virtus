@@ -63,7 +63,7 @@ export default function Library() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-9">
+    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-9">
       <h1 className="text-[26px] font-semibold tracking-tight text-ink">Documents</h1>
       <p className="mt-1.5 text-[14px] text-ink60">
         Everything produced on this device. Re-issue in any format without generating again.

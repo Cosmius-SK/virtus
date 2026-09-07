@@ -39,7 +39,7 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('templates');
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-9">
+    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-9">
       <h1 className="text-[26px] font-semibold tracking-tight text-ink">Admin</h1>
       <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-ink60">
         Templates, appearance and what everyone using this sees. Everything here is held on this

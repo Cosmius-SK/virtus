@@ -3,6 +3,41 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.13.1 — It works on a phone, and the rewrite can be found
+
+The per-section rewrite was reported as missing. It was not missing — six of
+them were on the screen. Each was a 14px pale grey glyph pinned to the far right
+of a full-width row, hundreds of pixels from the heading it acted on, with no
+word beside it. An unlabelled icon nobody has seen before, in the lightest
+colour on the page, detached from its subject, is not a control. It is now a
+labelled pill in the accent colour, sitting immediately after the section
+heading, and the instruction above the document shows the same pill rather than
+describing it.
+
+There was no `<meta name="viewport">`. Without it a phone lays the page out at a
+notional desktop width and scales the result down, so the header ran off the
+side and every screen scrolled sideways.
+
+The tag alone was not the fix, because the reason it had gone unnoticed was that
+the header could not fit a phone either: five links in a fixed row made the
+whole document wider than the screen, and a stretched layout viewport means
+every `sm:` and `md:` below is measured against the wrong number and none of
+them fire. One overflowing element does not look like one overflowing element —
+it looks like the mobile layout was never written.
+
+- The navigation collapses to a menu below `md`. The same five entries, laid out
+  for the space there is.
+- The classification line moves out of the header and becomes its own strip on
+  narrow screens. Dropping it would have meant the one line governing what may
+  be typed is missing from the device most likely to be used casually.
+- The template shelves become one horizontally scrolling strip rather than three
+  stacked rows before you reach a template; search goes full width.
+- The action bar on the fill screen no longer sits on top of the last field.
+- Gutters, cards and button rows across every screen.
+
+Measured rather than eyeballed: at 360, 390, 430, 768, 1024 and 1440 the
+document is exactly as wide as the window on every screen.
+
 ## 0.13.0 — An admin space
 
 Twenty-six templates is a starting library, not a product. A team's own
