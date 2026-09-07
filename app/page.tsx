@@ -9,6 +9,7 @@ import { db, newId } from '@/lib/db';
 import { FORMATS, formatById } from '@/lib/formats/registry';
 import type { FormatDoc } from '@/lib/formats/types';
 import { clearDraft } from '@/lib/drafts';
+import { recordRun } from '@/lib/meter';
 import { ownerId } from '@/lib/owner';
 import type { Outline, Structure } from '@/lib/types';
 
@@ -65,9 +66,11 @@ export default function Page() {
     setError(null);
     const started = Date.now();
     try {
+      const name = CHOICES.find((c) => c.id === id)?.name ?? id;
+
       if (id === 'deck') {
-        const s = await post<{ structure: Structure }>('/api/structure', { note });
-        const o = await post<{ outline: Outline }>('/api/outline', {
+        const s = await post<{ structure: Structure; usage: Usage }>('/api/structure', { note });
+        const o = await post<{ outline: Outline; usage: Usage }>('/api/outline', {
           structure: s.structure,
           ask: '',
         });
@@ -75,12 +78,29 @@ export default function Page() {
         setStructure(s.structure);
         setOutline(o.outline);
         setStage('outline');
+        // Two calls make one document, so they are metered as one run.
+        await recordRun({
+          formatId: id,
+          formatName: name,
+          model: s.usage.model,
+          inputTokens: s.usage.inputTokens + o.usage.inputTokens,
+          outputTokens: s.usage.outputTokens + o.usage.outputTokens,
+          ms: Date.now() - started,
+        });
       } else {
-        const r = await post<{ doc: FormatDoc }>(`/api/format/${id}`, { note });
+        const r = await post<{ doc: FormatDoc; usage: Usage }>(`/api/format/${id}`, { note });
         await keepNote();
         setFormatId(id);
         setDoc(r.doc);
         setStage('doc');
+        await recordRun({
+          formatId: id,
+          formatName: name,
+          model: r.usage.model,
+          inputTokens: r.usage.inputTokens,
+          outputTokens: r.usage.outputTokens,
+          ms: Date.now() - started,
+        });
       }
       setTook(Date.now() - started);
       void clearDraft();
@@ -236,9 +256,18 @@ function Footer({ took }: { took: number | null }) {
       Virtus {process.env.NEXT_PUBLIC_VIRTUS_VERSION}
       {took !== null && ` · read in ${(took / 1000).toFixed(1)}s`}
       {where && ` · sent to ${where.models.join(', ')} via ${where.provider}`}
-      {' · nothing is shared; everything stays on this device'}
+      {' · nothing is shared; everything stays on this device · '}
+      <a href="/case" className="underline underline-offset-2 hover:text-accent">
+        what it costs
+      </a>
     </footer>
   );
+}
+
+interface Usage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
 }
 
 async function post<T>(url: string, body: unknown): Promise<T> {

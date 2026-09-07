@@ -2,6 +2,7 @@
 
 import Dexie, { type Table } from 'dexie';
 import type { FormatDoc } from './formats/types';
+import type { Run } from './meter';
 import type { Outline, Structure } from './types';
 
 /**
@@ -70,6 +71,7 @@ class VirtusDB extends Dexie {
   notes!: Table<Note, string>;
   drafts!: Table<Draft, string>;
   artefacts!: Table<Artefact, string>;
+  runs!: Table<Run, string>;
 
   constructor() {
     super('virtus');
@@ -80,6 +82,12 @@ class VirtusDB extends Dexie {
       notes: 'id, ownerId, updatedAt',
       drafts: 'id, ownerId, updatedAt',
       artefacts: 'id, ownerId, noteId, updatedAt',
+    });
+    // The meter (lib/meter.ts). A separate migration rather than an edit to
+    // version 1, because a browser that already holds someone's notes must
+    // upgrade rather than be rebuilt.
+    this.version(2).stores({
+      runs: 'id, ownerId, formatId, createdAt',
     });
   }
 }

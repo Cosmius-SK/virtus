@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { value, inputTokens, outputTokens } = await structured<Structure>({
+    const { value, model, inputTokens, outputTokens } = await structured<Structure>({
       model: MODELS.structure,
       system: STRUCTURE_SYSTEM,
       user: structureUser(note),
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       effort: 'low',
       maxTokens: 4000,
     });
-    return NextResponse.json({ structure: value, usage: { inputTokens, outputTokens } });
+    return NextResponse.json({ structure: value, usage: { model, inputTokens, outputTokens } });
   } catch (err) {
     return NextResponse.json({ error: message(err) }, { status: 502 });
   }
