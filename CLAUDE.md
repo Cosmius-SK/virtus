@@ -24,9 +24,9 @@ These come from the brief, and each one cost real time in biblio.
    never inside React components. The web app is the *first caller*, not the
    owner — an MCP plugin is the second, and it must not need a rewrite. If you
    find yourself putting pipeline logic in a component, stop.
-2. **Approve the argument, then render** (§6). Never generate a deck from a
-   note. Note → structure → outline → *the person edits* → slides. Never
-   regenerate a whole deck to fix one slide.
+2. **Approve the facts, then render** (§6). Never generate a document from a
+   note. Note → fields → *the person fixes them* → the file. Never regenerate a
+   whole artefact to fix one part of it.
 3. **Choosing terminates; correcting does not** (§8.2). Let people choose from
    structure rather than correct a result in adjectives. This is why there is no
    "try again" button on the outline screen, and why adding one would be a
@@ -38,6 +38,11 @@ These come from the brief, and each one cost real time in biblio.
 5. **Seven slide shapes, and no more** (§6). `title` `contents` `statement`
    `bullets` `two-column` `chart` `next-steps`. An eighth is always tempting and
    is never why someone adopts or drops this.
+
+   **Shapes and formats are different axes.** Shapes are the vocabulary a deck
+   is written in and stay at seven. Formats are the sentences: there should be
+   many, and adding one adds no shapes. Conflating them is what makes generated
+   documents feel like a straitjacket.
 6. **One module decides where the text goes** (§5). Every model call goes
    through `lib/ai/provider.ts`. Never construct an Anthropic client anywhere
    else, and never fall back to a default provider when the configured one
@@ -85,30 +90,70 @@ degrade to bullets rather than break a slide:
 | `chart` | `Label: 42` — no real figures means bullets, never an invented number |
 | `next-steps` | `Owner — action — when` |
 
+## Formats are data
+
+A format is a list of named sections — `paragraph`, `list`, `table` or a row of
+`fields` — with a hint saying what belongs there and what does not. One engine
+builds the schema, the prompt, the editing screen and every output from it.
+
+**Adding a format is adding an entry to `lib/formats/registry.ts`.** If you find
+yourself writing a renderer or a prompt for one format, stop: the thing you want
+is probably a new section kind, and that is a change to the engine that every
+format gets.
+
+The care goes in the **hints**, not the renderer. That is the only place to
+correct what a generic model does badly — "a criterion nobody could fail is not
+a criterion", "this is where honesty matters most", "do not reason out an impact
+the note did not state". Write them for the person who will read the document.
+
+A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
+(`one-pager` or `pack`). A one-pager is circulated; a pack is walked through.
+
 ## Where things live
 
 | Path | What it is |
 |---|---|
-| `app/api/structure` | Note → fixed fields. The core pass. |
-| `app/api/outline` | Fields → the argument. |
-| `app/api/deck` | Approved outline → `.pptx`. No model call happens here. |
-| `app/api/where` | Where the text goes, said plainly. |
+| `lib/formats/registry.ts` | Every format. Add one here and nowhere else. |
+| `lib/formats/types.ts` | What a format may say about itself. |
+| `lib/formats/schema.ts` | Sections → the Zod schema the model fills. |
+| `lib/formats/prompt.ts` | Sections → the prompt. The invariants live here, once. |
+| `lib/deck/format.ts` | Sections → slides. One-pager and pack. |
+| `lib/docs/format.ts` | Sections → Word. |
+| `lib/pdf/format.ts` | Sections → PDF. |
+| `lib/deck/master.ts` | The house palette and typeface. The only place they live. |
 | `lib/ai/provider.ts` | The only place that knows the provider, endpoint, key and model. |
-| `lib/deck/render.ts` | One function per shape. |
+| `lib/org/` | What the organisation knows about itself (§3). |
+| `lib/meter.ts`, `lib/pricing.ts` | What a document cost, measured not estimated. |
+| `lib/friendly.ts` | Failures, said in a sentence. Nothing raw reaches the screen. |
+| `lib/gate.ts`, `middleware.ts` | The shared passcode. Unset means no gate. |
 | `lib/db.ts` | The list of record types lives here and **only** here (lesson 12.5). |
+| `app/api/format/[id]` | Note → fields. The core pass, for every format. |
+| `app/api/{deck,doc,pdf}/format/[id]` | Approved fields → a file. No model call. |
 
-## Not built yet, in this order (§13.6)
+## Not built yet
 
-The organisation model — seeded by an offer at the first generic result, **never
-a setup wizard** (§3) — then sync, company sign-in, sharing, `.docx`/`.pdf`, and
-the MCP server.
+Sync between devices, company sign-in, sharing, and the MCP server (§7). The
+endpoints were built to be called without a browser, so the plugin is a wrapper
+over calls that already exist rather than a second pipeline — keep it that way.
+
+Known and deliberate: the organisation model lives on the device and travels
+with each request. The brief asks for server-side (§7) and that is right once
+there is a second caller; until then a server store would be the largest thing
+in the codebase serving nobody. Moving it is a change of source, not of shape.
 
 ## What is tested, and what deliberately is not
 
-`test/render.test.ts` covers one thing: that a slide shape which cannot be
-honoured **degrades to bullets rather than being faked**. That is where rule 4
-(nothing invented) is enforced in code, and it fails silently when it fails —
-the file still opens, it is just wrong.
+Everything here guards one rule: **what the note did not say must not reach the
+document**. That is where rule 4 lives in code, and it fails silently — the file
+still opens, it is just wrong, and it has already been sent.
+
+- `test/formats.test.ts` drives every format through every renderer, empty and
+  filled, and asserts that nothing on the output traces back to anywhere but the
+  input.
+- `test/render.test.ts` covers the seven shapes degrading rather than being
+  faked.
+- `test/org.test.ts`, `test/friendly.test.ts`, `test/pricing.test.ts`,
+  `test/gate.test.ts` cover their own small rules.
 
 Do not add tests that call the model (a different answer every run, real money,
 and flaky) or that assert visual layout (every design tweak would break them,
@@ -116,9 +161,20 @@ and tests people learn to ignore are worse than none). When you change the
 renderer, check the new behaviour is still caught: break the guard on purpose,
 confirm a test goes red, then put it back.
 
-One trap the tests found: **pptxgenjs numbers chart parts from a counter global
-to the module**, so the second deck rendered in one process contains
-`chart2.xml`, not `chart1.xml`. Find chart parts by prefix, never by name.
+**Pair every negative assertion with a positive one.** Four tests here have
+failed to catch their mutation while looking perfectly fine, and the pattern is
+always the same: "the output does not contain X" cannot tell absence from
+blindness. The worst was a PDF assertion that passed against compressed bytes it
+could not read; its replacement returned an empty string for every file and
+passed again. Always ask a green test: *what would this have failed on?*
+
+Two traps the tests found, both worth knowing before touching a renderer:
+
+- **pptxgenjs numbers chart parts from a counter global to the module**, so the
+  second deck rendered in one process contains `chart2.xml`, not `chart1.xml`.
+  Find chart parts by prefix, never by name.
+- **pdf-lib compresses content streams and writes hex strings.** Use
+  `test/pdf-text.ts` to read a PDF; matching raw bytes proves nothing.
 
 ## The test that decides whether this is real
 

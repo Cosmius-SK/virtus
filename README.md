@@ -4,94 +4,117 @@
 thing a person is left free to bring once the mundane half of the job is taken
 off them.*
 
-A personal AI partner for corporate work. It takes the mess — a spoken thought
-after a meeting, a page of notes, a half-formed argument — and turns it into the
-thing the job actually requires. Built in-house, for colleagues. Not for sale.
+Put the mess in — a dictated thought after a meeting, a page of notes, a
+half-formed argument. Choose what it should become. Fix the facts before
+anything is made. Get a real `.pptx`, `.docx` or `.pdf` in the house style.
 
-`docs/brief.md` is the handoff brief this is built to. Section numbers cited in
-the code refer to it.
+Built in-house, for colleagues. Not for sale.
+
+`docs/brief.md` is the handoff brief; section numbers in the code refer to it.
+`docs/brand.md` records where the palette came from. `docs/test-report.md` says
+what is tested and — more usefully — what is not.
 
 ## Running it
 
 ```bash
 npm install
-echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env.local
+cp .env.example .env.local     # then add ANTHROPIC_API_KEY
 npm run dev
 ```
 
-Then answer the question in §5 before anyone puts real client material in the
-box, and set `VIRTUS_AI_PROVIDER` and `VIRTUS_CLASSIFICATION` to match. Virtus
-tells you what it is currently doing at `/api/where` and in the page footer.
-
 | Variable | Default | What it decides |
 |---|---|---|
-| `VIRTUS_AI_PROVIDER` | `anthropic` | Which provider the text goes to. One module honours it: `lib/ai/provider.ts`. |
+| `ANTHROPIC_API_KEY` | — | Required. |
+| `VIRTUS_AI_PROVIDER` | `anthropic` | Where the text goes. One module honours it: `lib/ai/provider.ts`. |
 | `VIRTUS_CLASSIFICATION` | unset | The firm's classification line, said plainly rather than discovered in a security review. |
-| `VIRTUS_MODEL_STRUCTURE` | `claude-opus-5` | The structure pass. |
+| `VIRTUS_PASSCODE` | unset | A shared code. Unset means no gate at all. |
+| `VIRTUS_MODEL_STRUCTURE` | `claude-opus-5` | The reading pass. |
 | `VIRTUS_MODEL_OUTLINE` | `claude-opus-5` | The outline pass. |
-| `VIRTUS_DECK_FOOTER` | `Internal` | Footer on every slide. |
+| `VIRTUS_DECK_FOOTER` | `Internal` | Footer on every artefact. |
 
 ## The shape of it
 
 Everything is **an endpoint first and a screen second** (§7). The web app is the
-first caller, not the owner — when the plugin arrives it calls these same three
-and needs no pipeline of its own.
+first caller, not the owner — when the plugin arrives it calls the same ones.
 
 ```
-note ──▶ POST /api/structure ──▶ POST /api/outline ──▶ [ the person edits ] ──▶ POST /api/deck ──▶ .pptx
-         fixed fields,             claim + support           choosing, not         renders only what
-         never prose               + shape per slide         correcting            they approved
+note ──▶ POST /api/format/{id} ──▶ [ the person fixes the facts ] ──▶ .pptx  POST /api/deck/format/{id}
+         fields, never prose        choosing, not correcting          .docx  POST /api/doc/format/{id}
+                                                                     .pdf   POST /api/pdf/format/{id}
 ```
 
-`POST /api/where` — where the text goes, said plainly.
-
-The middle step is the product. **Do not generate a deck from a note**: generate
-the argument, let the person fix it in ten seconds, and only then make slides.
+The middle step is the product. **Do not generate a document from a note**:
+produce the fields, let the person fix them in a minute, and only then render.
 Choosing terminates; correcting does not.
 
-## Layout
+`GET /api/formats` lists what Virtus can make. `GET /api/where` says where the
+text goes.
 
-| Path | What it holds |
+## Formats
+
+A format is **data, not code** — a list of named sections, each a paragraph, a
+list, a table or a row of fields, with a hint saying what belongs there and what
+does not. One engine turns that into the schema the model fills, the prompt that
+tells it how, the screen that edits the result, and every output.
+
+Adding a format is adding an entry to `lib/formats/registry.ts`. No renderer, no
+prompt, no screen.
+
+**Project and delivery** — weekly status · RAID log · project charter · cutover
+plan · budget status · sprint review · retrospective
+**Operations** — incident postmortem · change request · release notes · runbook
+· service review · capacity report · security posture · vendor review
+**Engineering** — architecture decision record · technical design · RFC
+**Requirements** — user story · epic brief · business requirements · test plan ·
+UAT sign-off · handover
+**Packs** — steering committee · programme review
+
+Plus the multi-slide deck, which keeps its own outline-first flow and the seven
+slide shapes.
+
+## The three readers
+
+One section list, three ways to read it:
+
+| | For |
 |---|---|
-| `lib/ai/provider.ts` | The one module that decides provider, endpoint, key and model (§5). |
-| `lib/ai/structurePrompt.ts` | Messy input → fixed fields. Nothing invented. |
-| `lib/ai/outlinePrompt.ts` | Fields → the argument, in seven shapes. |
-| `lib/deck/master.ts` | One brand master, defined in code — not read from a `.potx` (§6). |
-| `lib/deck/render.ts` | Approved outline → a real, fully editable `.pptx`. Every shape degrades to bullets. |
-| `lib/db.ts` | Local-first storage. Private thinking and finished artefacts as separate record classes; an owner id on every record (§4). |
-| `lib/drafts.ts` | Debounced local save; the beacon body computed before the moment, not during it (lesson 12.3). |
-| `lib/names.ts` | Lifted from biblio. Puts back the names dictation mangles, from a list you hold. |
-| `lib/owner.ts` | The user is read from a session, never assumed. |
+| **Slide** | Presenting. Dense, one page, nothing said twice. |
+| **Word** | Editing. Room to write, lists not truncated, comments. |
+| **PDF** | Sending to someone who should read it and not change it. |
 
-## The seven shapes, and no more
+A **one-pager** is circulated; a **pack** gives each section its own slide and is
+walked through. The sections do not know which meeting they are in.
 
-`title` · `contents` · `statement` · `bullets` · `two-column` · `chart` ·
-`next-steps`
+## What it knows
 
-Three read their support list by convention, and every convention degrades to
-bullets rather than breaking a slide:
+`/organisation` holds the people, clients, systems, products and house
+terminology. Every document is written with that list in front of it, which is
+the difference between generic output and output that is already yours (§3).
 
-- `two-column` — each item is `left || right`
-- `chart` — each item is `Label: 42`; a chart with no real figures becomes bullets
-- `next-steps` — each item is an action, `Owner — action — when`
+It is **offered, never configured**: names appear under a finished document,
+where the reason to spend ten seconds is the thing on screen. biblio built its
+cast as a settings page first and nobody visited it.
+
+## What it costs
+
+`/case` shows measured time and cost from real runs, kept visibly apart from
+arithmetic on assumptions you can change — and says what it does not claim.
 
 ## No microphone
 
-Deliberate, and it cost biblio a week to learn (lesson 12.1). The browser's
-speech API commits each word as it is spoken with almost no lookahead: no
-punctuation, and names replaced by the nearest word it knows. Virtus points at
-the dictation already on the device — `Windows + H`, the mic key on a Mac, the
-mic on a phone keyboard — and does not offer a worse button beside it, because
-the easier path is the one people take and then judge the product by.
+Deliberate, and it cost biblio a week (lesson 12.1). The browser's speech API
+commits each word as it is spoken: no punctuation, names replaced by the nearest
+word it knows. Virtus points at the dictation already on the device and does not
+offer a worse button beside it.
+
+Names are put back before the model sees the note, from the list you hold.
 
 ## The test that decides whether this is real
 
-Take a real note. Generate. Open it in PowerPoint. **Present it without editing
-a single slide.** If you cannot, the fix is almost always in the outline step,
-not in prettier slides.
+Take a real note. Generate. Open it. **Present or send it without editing a
+thing.** If you cannot, the fix is in the fields step, not prettier output.
 
 ## Not built yet
 
-In §13 order: the organisation model (seeded by an offer at the first generic
-result, never a setup wizard), sync, company sign-in, sharing, `.docx` and
-`.pdf`, and the MCP server — a few hundred lines on top of the endpoints above.
+Sync, company sign-in, sharing, and the MCP server — a few hundred lines on top
+of the endpoints above, because they were built to be called without a browser.
