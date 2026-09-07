@@ -3,6 +3,24 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.9.0 — The organisation model, and a library
+
+The world model is the feature; generation is one consumer of it (§3). This is
+the part that stays valuable however good the models get.
+
+- **What Virtus knows** — people, clients, systems, products and house
+  terminology. Every document is written with the list in front of it, so
+  spellings are right and the words are yours.
+- **Offered, never configured.** Names appear as an offer under a finished
+  document — "you mentioned these and Virtus does not know them" — because a
+  settings page is a page nobody visits, and biblio learned that the expensive
+  way.
+- **Names are put back before the model sees the note**, using `lib/names.ts`,
+  lifted from biblio on day one and finally doing its job. The box is left
+  exactly as typed.
+- **A library** of everything made on this device, re-downloadable as either a
+  slide or a document without asking the model again.
+
 ## 0.8.0 — Word documents, and ten delivery formats
 
 A format already described its sections as data. A Word document is a second

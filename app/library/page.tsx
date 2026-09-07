@@ -1,0 +1,115 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import type { Artefact } from '@/lib/db';
+import { formatById } from '@/lib/formats/registry';
+import { forget, recent, when } from '@/lib/library';
+
+/**
+ * Everything made on this device.
+ *
+ * Re-downloading rather than re-generating: the fields were approved once and
+ * the model does not need asking twice. That is the cheap half of "choosing
+ * terminates" (§8.2) — a decision already made should not be paid for again.
+ */
+export default function Library() {
+  const [items, setItems] = useState<Artefact[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    void recent().then(setItems);
+  }, []);
+  useEffect(load, [load]);
+
+  async function download(item: Artefact, as: 'pptx' | 'docx') {
+    setBusy(item.id);
+    try {
+      const url =
+        item.kind === 'deck'
+          ? '/api/deck'
+          : as === 'docx'
+            ? `/api/doc/format/${item.formatId}`
+            : `/api/deck/format/${item.formatId}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item.kind === 'deck' ? { outline: item.outline } : { doc: item.doc }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = href;
+      a.download =
+        res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? `virtus.${as}`;
+      a.click();
+      URL.revokeObjectURL(href);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-3xl px-6 py-12">
+      <Link href="/" className="text-xs text-ink/45 underline-offset-2 hover:text-accent hover:underline">
+        ← back
+      </Link>
+      <h1 className="mt-4 text-2xl font-light tracking-tight text-ink">What you have made</h1>
+      <p className="mt-1 text-sm text-ink/55">
+        On this device only. Nothing here has been shared with anyone.
+      </p>
+
+      {items === null && <p className="mt-8 text-sm text-ink/40">Looking…</p>}
+
+      {items?.length === 0 && (
+        <p className="mt-8 rounded-lg border border-dashed border-rule px-4 py-10 text-center text-sm text-ink/45">
+          Nothing yet. Make something and it will be here.
+        </p>
+      )}
+
+      <ul className="mt-6 space-y-2">
+        {items?.map((item) => {
+          const format = item.formatId ? formatById(item.formatId) : undefined;
+          const outputs = format?.outputs ?? ['pptx'];
+          return (
+            <li key={item.id} className="rounded-lg border border-rule bg-white px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] text-ink">{item.title}</p>
+                  <p className="mt-0.5 text-xs text-ink/40">
+                    {format?.name ?? 'Deck'} · {when(item.createdAt)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {outputs.map((out) => (
+                    <button
+                      key={out}
+                      type="button"
+                      disabled={busy === item.id}
+                      onClick={() => download(item, out)}
+                      className="rounded border border-rule px-2 py-1 text-xs text-ink/70 transition hover:border-accent hover:text-accent disabled:opacity-40"
+                    >
+                      {out === 'pptx' ? 'Slide' : 'Word'}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    aria-label="Forget this"
+                    onClick={async () => {
+                      await forget(item.id);
+                      load();
+                    }}
+                    className="px-1 text-ink/30 transition hover:text-ink"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </main>
+  );
+}

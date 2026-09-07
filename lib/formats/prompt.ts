@@ -1,4 +1,5 @@
 import 'server-only';
+import { orgPrompt, type OrgContext } from '@/lib/org/types';
 import type { FormatDef, Section } from './types';
 
 /**
@@ -27,7 +28,7 @@ function describe(section: Section): string {
   return head;
 }
 
-export function systemFor(format: FormatDef): string {
+export function systemFor(format: FormatDef, org?: OrgContext): string {
   return `You turn a person's raw notes into the fields of a ${format.name}. You fill fields. You do not write a document.
 
 ${format.description}
@@ -41,7 +42,7 @@ Fill these:
 - title: what this is about, in their words.
 ${format.status ? '- status: the overall position. Choose what the note supports, not what sounds better.\n' : ''}${format.sections.map(describe).join('\n')}
 
-${INVARIANTS}`;
+${INVARIANTS}${org ? orgPrompt(org) : ''}`;
 }
 
 export function userFor(note: string): string {
