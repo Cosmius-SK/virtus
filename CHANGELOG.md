@@ -3,6 +3,21 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.8.0 — Word documents, and ten delivery formats
+
+A format already described its sections as data. A Word document is a second
+reader over the same structure — the dense view and the long one — so it cost an
+engine rather than a product.
+
+- **Word output.** Any format that declares it can be downloaded as `.docx`,
+  properly styled in the house typeface, with real tables and headings.
+- **Ten delivery formats**, most of them Word-first: user story, epic brief,
+  business requirements, technical design, test plan, UAT sign-off, runbook,
+  retrospective, RFC and handover.
+- The fourteen slide formats all gained a Word version too — a status report in
+  an email is a document, not a slide.
+- Twenty-four formats in total, every one tested through both renderers.
+
 ## 0.7.0 — Built for the room it will be shown in
 
 - **Nothing on screen is ever a stack trace.** Every failure becomes a sentence

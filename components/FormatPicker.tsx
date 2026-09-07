@@ -6,6 +6,7 @@ export interface FormatSummary {
   id: string;
   name: string;
   description: string;
+  outputs: ('pptx' | 'docx')[];
 }
 
 /**
@@ -62,6 +63,16 @@ export function FormatPicker({
             </span>
             <span className="mt-0.5 block text-xs leading-snug text-ink/50">
               {format.description}
+            </span>
+            <span className="mt-1.5 flex gap-1">
+              {format.outputs.map((out) => (
+                <span
+                  key={out}
+                  className="rounded border border-rule px-1.5 py-px text-[10px] uppercase tracking-wide text-ink/40"
+                >
+                  {out === 'pptx' ? 'slide' : 'document'}
+                </span>
+              ))}
             </span>
           </button>
         ))}

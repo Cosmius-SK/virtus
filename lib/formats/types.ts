@@ -56,6 +56,16 @@ export interface Section {
   fields?: Field[];
 }
 
+/**
+ * What a format can be turned into.
+ *
+ * The same section list describes both: a slide is the dense view and a Word
+ * document is the long one. A status report wants to be a slide; a test plan
+ * wants to be a document; several are genuinely useful as either, and it costs
+ * nothing to offer both once the sections are data.
+ */
+export type Output = 'pptx' | 'docx';
+
 export interface FormatDef {
   id: string;
   name: string;
@@ -65,6 +75,8 @@ export interface FormatDef {
   audience: string;
   /** Whether the banner row carries a status chip. */
   status: boolean;
+  /** Slide, Word document, or both. First is the default offered. */
+  outputs: Output[];
   sections: Section[];
 }
 
