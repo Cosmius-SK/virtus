@@ -32,7 +32,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const started = Date.now();
   try {
-    const { value, inputTokens, outputTokens } = await structured<FormatDoc>({
+    const { value, model, inputTokens, outputTokens } = await structured<FormatDoc>({
       model: MODELS.structure,
       system: systemFor(format),
       user: userFor(note),
@@ -42,7 +42,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     });
     return NextResponse.json({
       doc: value,
-      usage: { inputTokens, outputTokens, ms: Date.now() - started },
+      usage: { model, inputTokens, outputTokens, ms: Date.now() - started },
     });
   } catch (err) {
     return NextResponse.json(

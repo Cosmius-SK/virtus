@@ -94,7 +94,7 @@ export async function structured<T>(opts: {
   format: OutputFormat;
   effort?: 'low' | 'medium' | 'high';
   maxTokens?: number;
-}): Promise<{ value: T; inputTokens: number; outputTokens: number }> {
+}): Promise<{ value: T; model: string; inputTokens: number; outputTokens: number }> {
   const message = await client().messages.parse({
     model: opts.model,
     max_tokens: opts.maxTokens ?? 8000,
@@ -114,6 +114,10 @@ export async function structured<T>(opts: {
 
   return {
     value: message.parsed_output as T,
+    // What actually served the request, which can differ from what was asked
+    // for. The meter must report the model that was billed, not the one we
+    // hoped for.
+    model: message.model ?? opts.model,
     inputTokens: message.usage.input_tokens,
     outputTokens: message.usage.output_tokens,
   };

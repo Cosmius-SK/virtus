@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const ask = typeof body.ask === 'string' ? body.ask : '';
 
   try {
-    const { value, inputTokens, outputTokens } = await structured<Outline>({
+    const { value, model, inputTokens, outputTokens } = await structured<Outline>({
       model: MODELS.outline,
       system: OUTLINE_SYSTEM,
       user: outlineUser(parsed.data, ask),
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       effort: 'medium',
       maxTokens: 8000,
     });
-    return NextResponse.json({ outline: value, usage: { inputTokens, outputTokens } });
+    return NextResponse.json({ outline: value, usage: { model, inputTokens, outputTokens } });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'The model call failed.' },

@@ -3,6 +3,19 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.6.0 — What it costs, measured rather than claimed
+
+- **A meter.** Every document made is recorded locally with its real token
+  counts and the wall-clock time from pressing the button to having something to
+  edit. Median rather than mean, so one cold start does not decide the headline.
+- **A cost page** at `/case`, in two visibly separate halves: what Virtus
+  measured, and arithmetic on assumptions you can change. Presenting an
+  assumption as a measurement is the fastest way to lose a room that does this
+  for a living.
+- It says plainly what it does not claim — that the three minutes includes
+  correcting the fields, that it saves the writing and not the knowing, and that
+  the minutes-by-hand figure is yours and has not been measured.
+
 ## 0.5.0 — Fourteen formats, and an engine that makes the fifteenth cheap
 
 Formats are described as data, not code. One engine builds the schema the model
