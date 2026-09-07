@@ -2,10 +2,12 @@ import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 import { renderFormat } from '@/lib/deck/format';
 import { renderDocx } from '@/lib/docs/format';
+import { renderPdf } from '@/lib/pdf/format';
 import { FORMATS } from '@/lib/formats/registry';
 import { schemaFor } from '@/lib/formats/schema';
 import { systemFor } from '@/lib/formats/prompt';
 import type { FormatDef, FormatDoc, Section } from '@/lib/formats/types';
+import { pdfText } from './pdf-text';
 
 /**
  * Fourteen formats are only worth having if all fourteen work. These run every
@@ -107,12 +109,30 @@ describe.each(FORMATS.map((f) => [f.id, f] as const))('%s', (id, format) => {
       const buffer =
         out === 'pptx'
           ? await renderFormat(format, filled(format))
-          : await renderDocx(format, filled(format));
-      // Both are zip containers. A truncated one is the failure that matters:
-      // it opens as a corrupt-file dialog in front of whoever was shown it.
-      expect(buffer.length, `${id} ${out}`).toBeGreaterThan(2_000);
-      expect(buffer.subarray(0, 2).toString('latin1'), `${id} ${out}`).toBe('PK');
+          : out === 'docx'
+            ? await renderDocx(format, filled(format))
+            : await renderPdf(format, filled(format));
+      // A truncated file is the failure that matters: it opens as a
+      // corrupt-file dialog in front of whoever was shown it. Office formats
+      // are zip containers; a PDF starts %PDF.
+      expect(buffer.length, `${id} ${out}`).toBeGreaterThan(1_000);
+      expect(buffer.subarray(0, 4).toString('latin1'), `${id} ${out}`).toBe(
+        out === 'pdf' ? '%PDF' : 'PK\u0003\u0004',
+      );
     }
+  });
+
+  it('renders as PDF without dropping a section, and keeps the doubt out', async () => {
+    if (!format.outputs.includes('pdf')) return;
+    // Read through the compression. A negative assertion against compressed
+    // bytes proves nothing, which the first version of this test did not.
+    const text = pdfText(await renderPdf(format, filled(format)));
+    expect(text, `${id} produced an unreadable PDF`).toContain('A document');
+    for (const s of format.sections) {
+      if (s.kind === 'fields') continue;
+      expect(text, `${id} dropped ${s.id} from the PDF`).toContain(s.label);
+    }
+    expect(text).not.toContain('A doubt');
   });
 
   it('renders as Word without dropping a section, where it offers Word', async () => {

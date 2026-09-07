@@ -64,7 +64,7 @@ export interface Section {
  * wants to be a document; several are genuinely useful as either, and it costs
  * nothing to offer both once the sections are data.
  */
-export type Output = 'pptx' | 'docx';
+export type Output = 'pptx' | 'docx' | 'pdf';
 
 export interface FormatDef {
   id: string;

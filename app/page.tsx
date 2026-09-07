@@ -139,7 +139,7 @@ export default function Page() {
     }
   }
 
-  async function render(as: 'pptx' | 'docx' = 'pptx') {
+  async function render(as: 'pptx' | 'docx' | 'pdf' = 'pptx') {
     setBusyId('render');
     setProblem(null);
     try {
@@ -147,7 +147,9 @@ export default function Page() {
       const url = isDoc
         ? as === 'docx'
           ? `/api/doc/format/${formatId}`
-          : `/api/deck/format/${formatId}`
+          : as === 'pdf'
+            ? `/api/pdf/format/${formatId}`
+            : `/api/deck/format/${formatId}`
         : '/api/deck';
       const res = await fetch(url, {
         method: 'POST',

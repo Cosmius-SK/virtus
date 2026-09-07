@@ -3,6 +3,15 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.10.0 — PDF, and the third reader
+
+- **PDF output** for every format. A slide is for presenting, a Word document is
+  for editing, and a PDF is for sending to someone who should read it and not
+  change it — which is most of the people a status report reaches.
+- One honest compromise, written down in the code: the PDF uses Helvetica
+  rather than the house typeface. Embedding Trebuchet MS means shipping a font
+  licensed with Windows. The colours are the firm's; the letterforms are not.
+
 ## 0.9.0 — The organisation model, and a library
 
 The world model is the feature; generation is one consumer of it (§3). This is

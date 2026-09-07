@@ -12,11 +12,11 @@ tested and what could still go wrong in front of an audience.
 
 | | |
 |---|---|
-| Automated tests | **177 passed, 0 failed** (6 files, 1.4s) |
+| Automated tests | **201 passed, 0 failed** (7 files) |
 | HTTP integration checks | **9 passed, 0 failed** |
 | Passcode gate checks | **7 passed, 0 failed** |
 | Typecheck / lint / build | clean; lint runs at zero warnings |
-| Formats | 24 — 17 render as slides, 24 as Word, 17 as both |
+| Formats | 24 — 17 as slides, 24 as Word, 24 as PDF |
 | Application code | ~5,050 lines |
 | Test code | ~560 lines |
 
@@ -87,9 +87,11 @@ broken on purpose and the suite re-run.
 | Fill a blank risk cell with "TBC" | ✅ after tightening — see below |
 | Drop the risk table when empty | ✅ |
 | Print author-only doubts onto the slide | ✅ |
+| Print author-only doubts into the PDF | ✅ after two rewrites — see below |
+| Drop a section heading from the PDF | ✅ |
 
-**Two tests failed to catch their mutation on the first attempt**, and both are
-worth recording because the tests looked fine:
+**Four tests failed to catch their mutation on the first attempt**, and all are
+worth recording because every one of them looked fine:
 
 1. The two-column fallback was asserted on visible text alone. A broken fallback
    still shows the same words, just laid out wrongly. Fixed by rendering the
@@ -97,6 +99,14 @@ worth recording because the tests looked fine:
 2. The blank-cell test counted em-dashes. Filling risk cells with "TBC" passed
    it, because dashes elsewhere on the slide satisfied the count. Fixed by the
    general "nothing that was not supplied" assertion.
+3. The first PDF assertion was **worthless**: pdf-lib compresses its content
+   streams, so "the file does not contain this string" passed whatever the
+   renderer did. Fixed by inflating the streams and reading the text operators.
+4. The second version was worthless more quietly. It matched only parenthesised
+   strings and pdf-lib writes hex ones, so it returned an empty string for every
+   file — the negative assertion passed and the **positive** one caught it. That
+   is the argument for always pairing them: a test that only says "X is absent"
+   cannot tell absence from blindness.
 
 The renderer was byte-identical after every mutation was reverted.
 
