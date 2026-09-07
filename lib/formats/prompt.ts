@@ -45,6 +45,61 @@ ${format.status ? '- status: the overall position. Choose what the note supports
 ${INVARIANTS}${org ? orgPrompt(org) : ''}`;
 }
 
-export function userFor(note: string): string {
-  return `Here is the note.\n\n<note>\n${note}\n</note>`;
+export function userFor(note: string, opts?: { guided?: boolean; instruction?: string }): string {
+  const parts = [`Here is the note.\n\n<note>\n${note}\n</note>`];
+  // Where the person typed into the template's own boxes, they have already
+  // said which section each thing belongs to. Moving it would be overruling a
+  // decision they made deliberately, which is the opposite of what they asked
+  // the tool for.
+  if (opts?.guided) {
+    parts.push(
+      'The note is grouped under headings that match the sections above, because the person typed it that way. Keep each thing in the section they put it in. Move something only if it is plainly about a different section, and never to fill a section they left empty.',
+    );
+  }
+  if (opts?.instruction?.trim()) {
+    parts.push(
+      `They have read a first version and asked for this:\n\n<asked>\n${opts.instruction.trim()}\n</asked>\n\nDo what they asked. It does not license inventing anything the note does not support: if they ask for something the note cannot supply, leave it out rather than supply it.`,
+    );
+  }
+  return parts.join('\n\n');
+}
+
+/**
+ * The prompt for rewriting one section.
+ *
+ * Deliberately narrow. It sees the note, the section it is rewriting, and what
+ * was asked — not the rest of the document, because a section that reads
+ * differently depending on what sits above it is a section that will change
+ * every time something else does.
+ */
+export function rewriteSystem(format: FormatDef, section: Section, org?: OrgContext): string {
+  return `You are rewriting one section of a ${format.name}, read by ${format.audience}.
+
+The section is:
+
+${describe(section)}
+
+Return only that section's value, in the same shape it is already in.
+
+${INVARIANTS}${org ? orgPrompt(org) : ''}`;
+}
+
+export function rewriteUser(note: string, current: string, instruction: string): string {
+  return `Here is the note the document was made from.
+
+<note>
+${note}
+</note>
+
+Here is the section as it stands.
+
+<current>
+${current}
+</current>
+
+${
+  instruction.trim()
+    ? `They asked for this:\n\n<asked>\n${instruction.trim()}\n</asked>`
+    : 'They asked for another attempt without saying what was wrong. Say the same facts differently — sharper, or ordered better. Do not add facts to make it look like more has changed.'
+}`;
 }

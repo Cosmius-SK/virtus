@@ -33,6 +33,18 @@ function sectionSchema(section: Section): z.ZodTypeAny {
   }
 }
 
+/**
+ * The schema for one section on its own.
+ *
+ * A rewrite of a single section must not be able to touch the others. Asking
+ * for the whole document and keeping one field would still pay for the whole
+ * document, and would still let a good paragraph move underneath somebody who
+ * only asked about the one below it.
+ */
+export function schemaForSection(section: Section) {
+  return z.object({ value: sectionSchema(section) });
+}
+
 export function schemaFor(format: FormatDef) {
   const sections: Record<string, z.ZodTypeAny> = {};
   for (const section of format.sections) sections[section.id] = sectionSchema(section);

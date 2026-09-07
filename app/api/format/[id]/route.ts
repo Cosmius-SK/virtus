@@ -18,10 +18,19 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!format) return NextResponse.json({ error: 'No such format.' }, { status: 404 });
 
   let note = '';
+  let guided = false;
+  let instruction = '';
   let org: OrgContext | undefined;
   try {
-    const body = (await req.json()) as { note?: unknown; org?: unknown };
+    const body = (await req.json()) as {
+      note?: unknown;
+      org?: unknown;
+      guided?: unknown;
+      instruction?: unknown;
+    };
     note = typeof body.note === 'string' ? body.note.trim() : '';
+    guided = body.guided === true;
+    instruction = typeof body.instruction === 'string' ? body.instruction.slice(0, 2000) : '';
     const parsedOrg = OrgContextSchema.safeParse(body.org);
     // An unusable organisation model is dropped rather than refused: a bad
     // entry must never be the reason someone cannot make a document.
@@ -42,7 +51,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const { value, model, inputTokens, outputTokens } = await structured<FormatDoc>({
       model: MODELS.structure,
       system: systemFor(format, org),
-      user: userFor(note),
+      user: userFor(note, { guided, instruction }),
       format: zodOutputFormat(schemaFor(format)),
       effort: 'low',
       maxTokens: 8000,

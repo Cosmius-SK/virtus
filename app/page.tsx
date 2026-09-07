@@ -7,6 +7,7 @@ import { DocEditor } from '@/components/DocEditor';
 import { OutlineEditor } from '@/components/OutlineEditor';
 import { Problem } from '@/components/Problem';
 import { TeachIt } from '@/components/TeachIt';
+import { TemplateFill, noteFrom, type Filled } from '@/components/TemplateFill';
 import { TemplateStore } from '@/components/TemplateStore';
 import { Working } from '@/components/Working';
 import { db, newId } from '@/lib/db';
@@ -22,7 +23,7 @@ import type { EntryKind } from '@/lib/org/types';
 import { ownerId } from '@/lib/owner';
 import type { Outline, Structure } from '@/lib/types';
 
-type Stage = 'compose' | 'doc' | 'outline';
+type Stage = 'compose' | 'fill' | 'deckNote' | 'doc' | 'outline';
 type Mode = 'templates' | 'freeform';
 
 export default function Page() {
@@ -36,12 +37,17 @@ export default function Page() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [proposal, setProposal] = useState<Proposal | null>(null);
 
+  const [chosen, setChosen] = useState<FormatDef | null>(null);
+  const [filled, setFilled] = useState<Filled>({ parts: {}, extra: '' });
+  /** What was actually sent to be read. Kept so a rewrite has the same source. */
+  const [source, setSource] = useState('');
+  const [rewriting, setRewriting] = useState<string | null>(null);
+
   const [formatId, setFormatId] = useState<string | null>(null);
   const [doc, setDoc] = useState<FormatDoc | null>(null);
   const [structure, setStructure] = useState<Structure | null>(null);
   const [outline, setOutline] = useState<Outline | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
-  const [lastPick, setLastPick] = useState<string | null>(null);
 
   const format = formatId ? formatById(formatId) : undefined;
 
@@ -54,26 +60,27 @@ export default function Page() {
   }
 
   /** The reading pass, shared by both modes. */
-  async function build(id: string, source: string, label: string) {
+  async function build(id: string, text: string, label: string, guided = false) {
     setBusyId(id);
-    setLastPick(id);
     setProblem(null);
     const started = Date.now();
     try {
       const known = await all();
       const org = await context();
       // Names are put back before the model reads it; the box is left as typed.
-      const corrected = fixNames(source, known.map((e) => e.name));
+      const corrected = fixNames(text, known.map((e) => e.name));
 
       const r = await post<{ doc: FormatDoc; usage: Usage }>(`/api/format/${id}`, {
         note: corrected,
         org,
+        guided,
       });
-      await keepNote(source);
+      await keepNote(text);
+      setSource(corrected);
       setFormatId(id);
       setDoc(r.doc);
       setStage('doc');
-      setNotices(unknownNames(source, known));
+      setNotices(unknownNames(text, known));
       void clearDraft();
       await recordRun({
         formatId: id,
@@ -101,7 +108,6 @@ export default function Page() {
       return;
     }
     setBusyId('deck');
-    setLastPick('deck');
     setProblem(null);
     const started = Date.now();
     try {
@@ -135,15 +141,93 @@ export default function Page() {
     }
   }
 
-  function chooseTemplate(chosen: FormatDef) {
-    if (note.trim().length < 20) {
-      setProblem({
-        message: 'Add a few sentences about what happened before choosing a template.',
-        retry: false,
+  /**
+   * Choosing a template opens it, rather than demanding a note first.
+   *
+   * The old order made people write before they knew what was wanted of them,
+   * and the commonest thing that came back was a note missing whatever the
+   * template needed most. The template knows what it needs; asking in its own
+   * shape is cheaper for everyone than asking blind and reading around the gap.
+   */
+  function chooseTemplate(next: FormatDef) {
+    if (chosen?.id !== next.id) setFilled({ parts: {}, extra: '' });
+    setChosen(next);
+    setProblem(null);
+    setStage('fill');
+  }
+
+  function generate() {
+    if (!chosen) return;
+    void build(chosen.id, noteFrom(chosen, filled), chosen.name, true);
+  }
+
+  /**
+   * One section, rewritten from the same input. Everything else is untouched,
+   * including corrections already made by hand (§6, rule 2).
+   */
+  async function rewriteSection(sectionId: string, instruction: string) {
+    if (!formatId || !doc) return;
+    setRewriting(sectionId);
+    setProblem(null);
+    const started = Date.now();
+    try {
+      const org = await context();
+      const current = doc.sections[sectionId];
+      const r = await post<{ value: FormatDoc['sections'][string]; usage: Usage }>(
+        `/api/rewrite/${formatId}`,
+        {
+          sectionId,
+          note: source,
+          current: typeof current === 'string' ? current : JSON.stringify(current, null, 1),
+          instruction,
+          org,
+        },
+      );
+      setDoc({ ...doc, sections: { ...doc.sections, [sectionId]: r.value } });
+      await recordRun({
+        formatId,
+        formatName: `${format?.name ?? 'Document'} — one section`,
+        model: r.usage.model,
+        inputTokens: r.usage.inputTokens,
+        outputTokens: r.usage.outputTokens,
+        ms: Date.now() - started,
       });
-      return;
+    } catch (err) {
+      setProblem(friendly(err));
+    } finally {
+      setRewriting(null);
     }
-    void build(chosen.id, note, chosen.name);
+  }
+
+  /** Every section again. Offered because it is sometimes right, and labelled
+   * with what it costs: corrections already made are lost. */
+  async function rewriteAll(instruction: string) {
+    if (!formatId || !format) return;
+    setRewriting('all');
+    setProblem(null);
+    const started = Date.now();
+    try {
+      const org = await context();
+      const r = await post<{ doc: FormatDoc; usage: Usage }>(`/api/format/${formatId}`, {
+        note: source,
+        org,
+        guided: true,
+        instruction,
+      });
+      setDoc(r.doc);
+      await recordRun({
+        formatId,
+        formatName: `${format.name} — rewritten`,
+        model: r.usage.model,
+        inputTokens: r.usage.inputTokens,
+        outputTokens: r.usage.outputTokens,
+        ms: Date.now() - started,
+      });
+    } catch (err) {
+      setProblem(friendly(err));
+    } finally {
+      setRewriting(null);
+    }
   }
 
   async function sendTurn(text: string) {
@@ -170,8 +254,8 @@ export default function Page() {
   function acceptProposal(accepted: Proposal) {
     // Everything the person said, in order, is the note. The conversation was
     // how it was gathered, not a separate thing to summarise.
-    const said = turns.filter((t) => t.role === 'user').map((t) => t.content).join('\n\n');
-    void build(accepted.formatId, said, accepted.formatName);
+    const spoken = turns.filter((t) => t.role === 'user').map((t) => t.content).join('\n\n');
+    void build(accepted.formatId, spoken, accepted.formatName);
   }
 
   async function render(as: 'pptx' | 'docx' | 'pdf' = 'pptx') {
@@ -228,6 +312,76 @@ export default function Page() {
     setProposal(null);
   }
 
+  if (stage === 'fill' && chosen) {
+    return (
+      <>
+        <TemplateFill
+          format={chosen}
+          filled={filled}
+          onChange={setFilled}
+          onGenerate={generate}
+          onBack={() => setStage('compose')}
+          busy={busyId !== null}
+        />
+        {busyId && (
+          <div className="mx-auto max-w-4xl px-6 pb-8">
+            <Working what={chosen.name} />
+          </div>
+        )}
+        {problem && (
+          <div className="mx-auto max-w-4xl px-6 pb-8">
+            <Problem problem={problem} onRetry={generate} />
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (stage === 'deckNote') {
+    return (
+      <section className="mx-auto w-full max-w-3xl px-6 py-9">
+        <button
+          type="button"
+          onClick={() => setStage('compose')}
+          className="mb-5 text-[12px] text-ink40 transition hover:text-accent"
+        >
+          ← All templates
+        </button>
+        <h1 className="text-[24px] font-semibold tracking-tight text-ink">Custom deck</h1>
+        <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-ink60">
+          No template, so there are no boxes to fill — the shape of the deck is the argument, and
+          that is what Virtus proposes. Write what happened and what you want the room to conclude.
+        </p>
+        <div className="mt-5 rounded-lg border border-line bg-paper p-5 shadow-card">
+          <Capture text={note} onChange={setNote} disabled={busyId !== null} />
+        </div>
+        <div className="mt-5 flex items-center justify-end gap-3">
+          <p className="mr-auto text-[12px] text-ink40">
+            You approve the outline before a single slide is drawn.
+          </p>
+          <button
+            type="button"
+            disabled={busyId !== null || note.trim().length < 20}
+            onClick={buildDeck}
+            className="rounded bg-accent px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busyId === 'deck' ? 'Building the argument…' : 'Propose the argument'}
+          </button>
+        </div>
+        {busyId === 'deck' && (
+          <div className="mt-6">
+            <Working what="the argument" />
+          </div>
+        )}
+        {problem && (
+          <div className="mt-6">
+            <Problem problem={problem} onRetry={buildDeck} />
+          </div>
+        )}
+      </section>
+    );
+  }
+
   if (stage === 'doc' && format && doc) {
     return (
       <>
@@ -236,8 +390,11 @@ export default function Page() {
           doc={doc}
           onChange={setDoc}
           onRender={render}
-          busy={busyId !== null}
-          onBack={startOver}
+          onRewriteSection={rewriteSection}
+          onRewriteAll={rewriteAll}
+          rewriting={rewriting}
+          busy={busyId !== null || rewriting !== null}
+          onBack={() => setStage(chosen ? 'fill' : 'compose')}
         />
         {notices.length > 0 && (
           <div className="mx-auto max-w-3xl px-6 pb-8">
@@ -285,8 +442,9 @@ export default function Page() {
       <header className="mb-7">
         <h1 className="text-[26px] font-semibold tracking-tight text-ink">New document</h1>
         <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-ink60">
-          Provide the detail once. Virtus extracts the facts, shows them for review, and produces
-          the document only when you are satisfied — as slides, Word or PDF.
+          Choose a template and fill in what you know, or describe it in your own words and let
+          Virtus propose one. It lays the content out for review, rewrites anything you want
+          changed, and produces the file only when you are satisfied — slides, Word or PDF.
         </p>
       </header>
 
@@ -312,31 +470,16 @@ export default function Page() {
 
       {mode === 'templates' ? (
         <>
-          <div className="mb-6 rounded-lg border border-line bg-paper p-5 shadow-card">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
-              What happened
-            </label>
-            <Capture text={note} onChange={setNote} disabled={busyId !== null} />
-          </div>
-
-          {busyId && busyId !== 'render' && (
-            <div className="mb-6">
-              <Working what={formatById(busyId)?.name ?? 'your document'} />
-            </div>
-          )}
           {problem && (
             <div className="mb-6">
-              <Problem
-                problem={problem}
-                onRetry={() => lastPick && note && build(lastPick, note, lastPick)}
-              />
+              <Problem problem={problem} onRetry={() => setProblem(null)} />
             </div>
           )}
 
           <button
             type="button"
             disabled={busyId !== null}
-            onClick={buildDeck}
+            onClick={() => setStage('deckNote')}
             className="group mb-8 flex w-full items-center gap-4 rounded-lg border border-line bg-paper p-4 text-left shadow-card transition hover:border-accent hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-accentTint text-accentDark">
@@ -347,7 +490,7 @@ export default function Page() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[14px] font-medium text-ink group-hover:text-accent">
-                {busyId === 'deck' ? 'Building the argument…' : 'Custom deck'}
+                Custom deck
               </span>
               <span className="mt-0.5 block text-[12px] leading-snug text-ink60">
                 No fixed template. Virtus proposes the argument as an editable outline — reorder,
