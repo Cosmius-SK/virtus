@@ -49,14 +49,14 @@ export function TemplateStore({
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-1">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+        <div className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0 sm:pb-0">
           {(['All', ...ORDER] as const).map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setCategory(c)}
-              className={`rounded border px-3 py-1.5 text-[13px] transition ${
+              className={`shrink-0 rounded border px-3 py-1.5 text-[13px] transition ${
                 category === c
                   ? 'border-ink bg-ink text-white'
                   : 'border-line bg-paper text-ink60 hover:border-ink40 hover:text-ink'
@@ -70,7 +70,7 @@ export function TemplateStore({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search templates"
-          className="ml-auto w-52 rounded border border-line bg-paper px-3 py-1.5 text-[13px] text-ink outline-none transition placeholder:text-ink40 focus:border-accent focus:ring-2 focus:ring-accent/15"
+          className="w-full rounded border border-line bg-paper px-3 py-2 text-[13px] text-ink outline-none transition placeholder:text-ink40 focus:border-accent focus:ring-2 focus:ring-accent/15 sm:ml-auto sm:w-52 sm:py-1.5"
         />
       </div>
 

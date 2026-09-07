@@ -337,12 +337,12 @@ export default function Page() {
           busy={busyId !== null}
         />
         {busyId && (
-          <div className="mx-auto max-w-4xl px-6 pb-8">
+          <div className="mx-auto max-w-4xl px-4 pb-8 sm:px-6">
             <Working what={chosen.name} />
           </div>
         )}
         {problem && (
-          <div className="mx-auto max-w-4xl px-6 pb-8">
+          <div className="mx-auto max-w-4xl px-4 pb-8 sm:px-6">
             <Problem problem={problem} onRetry={generate} />
           </div>
         )}
@@ -352,7 +352,7 @@ export default function Page() {
 
   if (stage === 'deckNote') {
     return (
-      <section className="mx-auto w-full max-w-3xl px-6 py-9">
+      <section className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-9">
         <button
           type="button"
           onClick={() => setStage('compose')}
@@ -410,7 +410,7 @@ export default function Page() {
           onBack={() => setStage(chosen ? 'fill' : 'compose')}
         />
         {notices.length > 0 && (
-          <div className="mx-auto max-w-3xl px-6 pb-8">
+          <div className="mx-auto max-w-3xl px-4 pb-8 sm:px-6">
             <TeachIt
               notices={notices}
               onTeach={async (name: string, kind: EntryKind) => {
@@ -422,7 +422,7 @@ export default function Page() {
           </div>
         )}
         {problem && (
-          <div className="mx-auto max-w-3xl px-6 pb-8">
+          <div className="mx-auto max-w-3xl px-4 pb-8 sm:px-6">
             <Problem problem={problem} onRetry={() => render()} />
           </div>
         )}
@@ -442,7 +442,7 @@ export default function Page() {
         />
         {structure && <Extracted structure={structure} />}
         {problem && (
-          <div className="mx-auto max-w-3xl px-6 pb-8">
+          <div className="mx-auto max-w-3xl px-4 pb-8 sm:px-6">
             <Problem problem={problem} onRetry={() => render()} />
           </div>
         )}
@@ -451,7 +451,7 @@ export default function Page() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-9">
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-9">
       <header className="mb-7">
         <h1 className="text-[26px] font-semibold tracking-tight text-ink">New document</h1>
         <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-ink60">
@@ -493,7 +493,7 @@ export default function Page() {
             type="button"
             disabled={busyId !== null}
             onClick={() => setStage('deckNote')}
-            className="group mb-8 flex w-full items-center gap-4 rounded-lg border border-line bg-paper p-4 text-left shadow-card transition hover:border-accent hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-50"
+            className="group mb-8 flex w-full items-start gap-3 rounded-lg border border-line bg-paper p-4 text-left shadow-card transition hover:border-accent hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-50 sm:items-center sm:gap-4"
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-accentTint text-accentDark">
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -510,7 +510,7 @@ export default function Page() {
                 cut and merge — and draws the slides only from what you approve.
               </span>
             </span>
-            <span className="shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink40">
+            <span className="hidden shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink40 sm:block">
               Slides
             </span>
           </button>
@@ -562,7 +562,7 @@ function Extracted({ structure }: { structure: Structure }) {
     ['Named', structure.mentions],
   ];
   return (
-    <details className="mx-auto max-w-3xl px-6 pb-10">
+    <details className="mx-auto max-w-3xl px-4 pb-10 sm:px-6">
       <summary className="cursor-pointer text-[12px] text-ink40 transition hover:text-accent">
         What Virtus extracted from your input
       </summary>

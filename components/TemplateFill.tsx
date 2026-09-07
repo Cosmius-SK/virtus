@@ -84,7 +84,7 @@ export function TemplateFill({
     onChange({ ...filled, parts: { ...filled.parts, [id]: text } });
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-6 py-9">
+    <section className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-9">
       <button
         type="button"
         onClick={onBack}
@@ -138,7 +138,7 @@ export function TemplateFill({
         </div>
       ))}
 
-      <div className="mt-5">
+      <div className="mt-5 pb-2">
         <label className="block">
           <span className="block text-[12px] font-semibold text-ink80">Anything else</span>
           {showHints && (
@@ -157,7 +157,7 @@ export function TemplateFill({
         </label>
       </div>
 
-      <div className="sticky bottom-0 mt-7 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-canvas/95 py-4 backdrop-blur">
+      <div className="sticky bottom-0 mt-7 flex flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-line bg-canvas py-4">
         <p className="mr-auto text-[12px] text-ink40">
           {enough
             ? 'Virtus will read this and lay it out. You review before anything is produced.'
@@ -167,7 +167,7 @@ export function TemplateFill({
           type="button"
           disabled={busy || !enough}
           onClick={onGenerate}
-          className="rounded bg-accent px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full shrink-0 rounded bg-accent px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
         >
           {busy ? 'Writing…' : 'Write the content'}
         </button>

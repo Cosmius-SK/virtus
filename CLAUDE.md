@@ -213,6 +213,21 @@ Two traps the tests found, both worth knowing before touching a renderer:
 - **pdf-lib compresses content streams and writes hex strings.** Use
   `test/pdf-text.ts` to read a PDF; matching raw bytes proves nothing.
 
+## The check no test performs
+
+Nothing here asserts layout, deliberately — but one measurement is worth taking
+by hand whenever the frame or a screen changes, because it fails only on a
+device nobody tried and it fails completely: **open every screen at 390px wide
+and confirm `document.documentElement.scrollWidth` equals `window.innerWidth`.**
+
+A single row wider than the phone makes the whole document wider than the phone.
+The page then scrolls sideways, and because the layout viewport has stretched,
+every `sm:` and `md:` below is measured against the wrong number and none of
+them fire — so one overflowing element does not look like one overflowing
+element, it looks like the mobile layout was never written. That is exactly what
+happened: the header carried five links in a fixed row, and there was no
+`viewport` meta tag to notice it against.
+
 ## The test that decides whether this is real
 
 Take a real note. Generate. Open it in PowerPoint. Present it without editing a

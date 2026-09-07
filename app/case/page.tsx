@@ -32,7 +32,7 @@ export default function CasePage() {
   const costPerYear = (data?.medianCost ?? 0) * docsPerYear;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-9">
+    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-9">
       <h1 className="text-[26px] font-semibold tracking-tight text-ink">Usage and cost</h1>
       <p className="mt-1.5 text-[14px] text-ink60">
         Measured on this device from actual runs. Nothing in this section is estimated.

@@ -62,7 +62,7 @@ export function OutlineEditor({
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 py-9">
+    <section className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-9">
       <header className="mb-6">
         <button
           type="button"

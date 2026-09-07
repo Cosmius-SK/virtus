@@ -45,7 +45,7 @@ export function DocEditor({
     onChange({ ...doc, sections: { ...doc.sections, [id]: value } });
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 py-9">
+    <section className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-9">
       <button
         type="button"
         onClick={onBack}
@@ -118,7 +118,7 @@ export function DocEditor({
 
       <RewriteAll busy={busy} rewriting={rewriting === 'all'} onRewrite={onRewriteAll} />
 
-      <div className="mt-6 flex items-center justify-end gap-2">
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {format.outputs.map((out, i) => (
           <button
             key={out}
