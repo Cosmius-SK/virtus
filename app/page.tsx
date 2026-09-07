@@ -11,7 +11,12 @@ import type { FormatDoc } from '@/lib/formats/types';
 import { Problem } from '@/components/Problem';
 import { Working } from '@/components/Working';
 import { clearDraft } from '@/lib/drafts';
+import { TeachIt } from '@/components/TeachIt';
 import { friendly, type Friendly } from '@/lib/friendly';
+import { fixNames } from '@/lib/names';
+import { unknownNames, type Notice } from '@/lib/org/notice';
+import { add, all, context } from '@/lib/org/store';
+import type { EntryKind } from '@/lib/org/types';
 import { SAMPLES } from '@/lib/samples';
 import { recordRun } from '@/lib/meter';
 import { ownerId } from '@/lib/owner';
@@ -46,6 +51,8 @@ export default function Page() {
   const [took, setTook] = useState<number | null>(null);
   /** What to repeat when someone presses Try again. */
   const [lastPick, setLastPick] = useState<string | null>(null);
+  /** Names the note used that Virtus does not know yet (§3). */
+  const [notices, setNotices] = useState<Notice[]>([]);
 
   const format = formatId ? formatById(formatId) : undefined;
 
@@ -75,9 +82,18 @@ export default function Page() {
     const started = Date.now();
     try {
       const name = CHOICES.find((c) => c.id === id)?.name ?? id;
+      const known = await all();
+      const org = await context();
+
+      // What goes to the model has the names put back (lesson 12.1). The box is
+      // left exactly as typed — correcting what someone can see themselves is
+      // presumptuous; correcting what the model sees is the whole point.
+      const corrected = fixNames(note, known.map((e) => e.name));
 
       if (id === 'deck') {
-        const s = await post<{ structure: Structure; usage: Usage }>('/api/structure', { note });
+        const s = await post<{ structure: Structure; usage: Usage }>('/api/structure', {
+          note: corrected,
+        });
         const o = await post<{ outline: Outline; usage: Usage }>('/api/outline', {
           structure: s.structure,
           ask: '',
@@ -96,7 +112,10 @@ export default function Page() {
           ms: Date.now() - started,
         });
       } else {
-        const r = await post<{ doc: FormatDoc; usage: Usage }>(`/api/format/${id}`, { note });
+        const r = await post<{ doc: FormatDoc; usage: Usage }>(`/api/format/${id}`, {
+          note: corrected,
+          org,
+        });
         await keepNote();
         setFormatId(id);
         setDoc(r.doc);
@@ -111,6 +130,7 @@ export default function Page() {
         });
       }
       setTook(Date.now() - started);
+      setNotices(unknownNames(note, known));
       void clearDraft();
     } catch (err) {
       setProblem(friendly(err));
@@ -242,6 +262,20 @@ export default function Page() {
         </>
       )}
 
+
+      {(stage === 'doc' || stage === 'outline') && notices.length > 0 && (
+        <div className="mx-auto max-w-3xl px-6 pb-2">
+          <TeachIt
+            notices={notices}
+            onTeach={async (name: string, kind: EntryKind) => {
+              await add(kind, name, '');
+              setNotices((n) => n.filter((x) => x.name !== name));
+            }}
+            onDismiss={(name: string) => setNotices((n) => n.filter((x) => x.name !== name))}
+          />
+        </div>
+      )}
+
       {problem && stage !== 'capture' && (
         <div className="mx-auto max-w-3xl px-6 pb-6">
           <Problem problem={problem} onRetry={() => render()} />
@@ -298,6 +332,14 @@ function Footer({ took }: { took: number | null }) {
       {took !== null && ` · read in ${(took / 1000).toFixed(1)}s`}
       {where && ` · sent to ${where.models.join(', ')} via ${where.provider}`}
       {' · nothing is shared; everything stays on this device · '}
+      <a href="/organisation" className="underline underline-offset-2 hover:text-accent">
+        what it knows
+      </a>
+      {' · '}
+      <a href="/library" className="underline underline-offset-2 hover:text-accent">
+        what you have made
+      </a>
+      {' · '}
       <a href="/case" className="underline underline-offset-2 hover:text-accent">
         what it costs
       </a>

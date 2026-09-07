@@ -3,6 +3,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { FormatDoc } from './formats/types';
 import type { Run } from './meter';
+import type { Entry } from './org/types';
 import type { Outline, Structure } from './types';
 
 /**
@@ -72,6 +73,7 @@ class VirtusDB extends Dexie {
   drafts!: Table<Draft, string>;
   artefacts!: Table<Artefact, string>;
   runs!: Table<Run, string>;
+  org!: Table<Entry, string>;
 
   constructor() {
     super('virtus');
@@ -88,6 +90,11 @@ class VirtusDB extends Dexie {
     // upgrade rather than be rebuilt.
     this.version(2).stores({
       runs: 'id, ownerId, formatId, createdAt',
+    });
+    // The organisation model (lib/org/). Its own migration for the same reason:
+    // a browser holding someone's work upgrades rather than being rebuilt.
+    this.version(3).stores({
+      org: 'id, ownerId, kind, name',
     });
   }
 }
