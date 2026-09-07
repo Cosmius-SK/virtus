@@ -35,7 +35,12 @@ These come from the brief, and each one cost real time in biblio.
    faithful to what the person actually wrote. A work tool that embellishes is
    worse than none: its output will be sent to a client. If a note is thin, the
    output is thin — that is correct, not a bug to fix in the prompt.
-5. **Seven slide shapes, and no more** (§6). `title` `contents` `statement`
+5. **Two ways in, one pipeline behind them** (§8.2). The template store and
+   free-form mode are two front doors to the same endpoints: free-form ends by
+   *choosing a template*, and from there the path is identical. If free-form
+   ever grows its own generator, the product has two products in it and one of
+   them is untested.
+6. **Seven slide shapes, and no more** (§6). `title` `contents` `statement`
    `bullets` `two-column` `chart` `next-steps`. An eighth is always tempting and
    is never why someone adopts or drops this.
 
@@ -43,20 +48,20 @@ These come from the brief, and each one cost real time in biblio.
    is written in and stay at seven. Formats are the sentences: there should be
    many, and adding one adds no shapes. Conflating them is what makes generated
    documents feel like a straitjacket.
-6. **One module decides where the text goes** (§5). Every model call goes
+7. **One module decides where the text goes** (§5). Every model call goes
    through `lib/ai/provider.ts`. Never construct an Anthropic client anywhere
    else, and never fall back to a default provider when the configured one
    fails — falling back is how internal documents reach somewhere nobody
    approved.
-7. **Private thinking and finished artefacts stay separate** (§4). `db.notes`
+8. **Private thinking and finished artefacts stay separate** (§4). `db.notes`
    and `db.artefacts` are different tables on purpose. Sharing, retention and
    team libraries will land on `artefacts` alone. Do not merge them.
-8. **Every record carries an `ownerId`, read from a session** (§4). Never assume
+9. **Every record carries an `ownerId`, read from a session** (§4). Never assume
    there is one user, even while there is.
-9. **No microphone** (lesson 12.1). biblio built one on the browser's speech API
+10. **No microphone** (lesson 12.1). biblio built one on the browser's speech API
    and removed it after a week. Point at the device's own dictation and do not
    offer a worse button beside it.
-10. **The changelog is the single source of release notes** (§8.7). Written
+11. **The changelog is the single source of release notes** (§8.7). Written
     before shipping, parsed at build time by `next.config.mjs`. There is no
     second copy — do not add one.
 
@@ -120,7 +125,11 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `lib/deck/format.ts` | Sections → slides. One-pager and pack. |
 | `lib/docs/format.ts` | Sections → Word. |
 | `lib/pdf/format.ts` | Sections → PDF. |
-| `lib/deck/master.ts` | The house palette and typeface. The only place they live. |
+| `lib/deck/master.ts` | The **client's** house palette and typeface — what goes *into* a document. |
+| `lib/brand.ts` | **Virtus's own** palette — what the product itself looks like. Never the same thing as the line above, and never merged with it. |
+| `components/Logo.tsx`, `app/icon.svg` | The mark. One path, shared by both, so the tab and the header cannot diverge. |
+| `components/Shell.tsx` | Header, navigation and the classification line. Every page is inside it. |
+| `components/TemplatePreview.tsx` | A template's preview, drawn from its own sections. Never a screenshot — a screenshot is wrong the first time a section moves. |
 | `lib/ai/provider.ts` | The only place that knows the provider, endpoint, key and model. |
 | `lib/org/` | What the organisation knows about itself (§3). |
 | `lib/meter.ts`, `lib/pricing.ts` | What a document cost, measured not estimated. |
@@ -128,6 +137,7 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `lib/gate.ts`, `middleware.ts` | The shared passcode. Unset means no gate. |
 | `lib/db.ts` | The list of record types lives here and **only** here (lesson 12.5). |
 | `app/api/format/[id]` | Note → fields. The core pass, for every format. |
+| `app/api/compose` | The conversation behind free-form mode. It proposes a template and a plan; it never writes the document. |
 | `app/api/{deck,doc,pdf}/format/[id]` | Approved fields → a file. No model call. |
 
 ## Not built yet

@@ -6,7 +6,21 @@ Five minutes, driven live. Written so you can read it once and not need it.
 
 ## Before the room
 
-1. **Set `VIRTUS_PASSCODE`** in Vercel if the URL will be seen. Test it opens.
+1. **Set the two environment variables in Vercel**, then **redeploy**. Vercel
+   applies environment variables at build time, so a variable added after the
+   last deployment has no effect until the next one — which is the usual reason
+   a passcode appears to have been set and nothing asks for it.
+
+   | Variable | Value | Scope |
+   |---|---|---|
+   | `VIRTUS_PASSCODE` | the shared code | Production **and** Preview |
+   | `VIRTUS_CLASSIFICATION` | `Trial Run - Do not enter confidential data` | Production **and** Preview |
+
+   Add them to every environment the URL will be opened in — a code set on
+   Production only leaves preview URLs open. Then **Deployments → ⋯ → Redeploy**
+   (leave "use existing build cache" unticked). Confirm in a private window:
+   the app should send you to the unlock screen, and the classification line
+   should read across the top of every page.
 2. **Open the app once yourself** — the first request after a quiet period is
    slower while the function wakes. Do it in the corridor, not on the projector.
 3. **Have `/organisation` populated** with four or five real names — a director,
