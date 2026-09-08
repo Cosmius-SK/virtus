@@ -108,15 +108,16 @@ export function TemplateFill({
         </div>
       </div>
 
-      <div className="mt-7 flex items-center justify-between border-b border-line pb-2.5">
-        <p className="text-[13px] text-ink60">
+      <div className="mt-7 flex flex-col gap-1.5 border-b border-line pb-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <p className="text-[13px] leading-relaxed text-ink60">
           Put what you know into the section it belongs to. Rough notes are expected — leave
-          anything you do not have.
+          anything you do not have. Nothing is written until you press the button at the bottom,
+          and every section can be rewritten after that.
         </p>
         <button
           type="button"
           onClick={() => setShowHints((v) => !v)}
-          className="shrink-0 text-[12px] text-ink40 transition hover:text-accent"
+          className="self-start text-[12px] text-ink40 transition hover:text-accent sm:shrink-0"
         >
           {showHints ? 'Hide guidance' : 'Show guidance'}
         </button>
@@ -160,7 +161,7 @@ export function TemplateFill({
       <div className="sticky bottom-0 mt-7 flex flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-line bg-canvas py-4">
         <p className="mr-auto text-[12px] text-ink40">
           {enough
-            ? 'Virtus will read this and lay it out. You review before anything is produced.'
+            ? 'Next: Virtus writes this out and you review it — rewriting any section you want changed — before any file exists.'
             : 'Fill in at least one section to continue.'}
         </p>
         <button
