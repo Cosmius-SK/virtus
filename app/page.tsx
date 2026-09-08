@@ -9,7 +9,7 @@ import { Problem } from '@/components/Problem';
 import { TeachIt } from '@/components/TeachIt';
 import { TemplateFill, noteFrom, type Filled } from '@/components/TemplateFill';
 import { TemplateStore } from '@/components/TemplateStore';
-import { Working } from '@/components/Working';
+import { Writing } from '@/components/Writing';
 import { useSettings } from '@/lib/admin/use';
 import { db, newId } from '@/lib/db';
 import { clearDraft } from '@/lib/drafts';
@@ -344,11 +344,7 @@ export default function Page() {
           onBack={() => setStage('compose')}
           busy={busyId !== null}
         />
-        {busyId && (
-          <div className="mx-auto max-w-4xl px-4 pb-8 sm:px-6">
-            <Working what={chosen.name} />
-          </div>
-        )}
+        {busyId && <Writing what={chosen.name} />}
         {problem && (
           <div className="mx-auto max-w-4xl px-4 pb-8 sm:px-6">
             <Problem problem={problem} onRetry={generate} />
@@ -389,11 +385,7 @@ export default function Page() {
             {busyId === 'deck' ? 'Building the argument…' : 'Propose the argument'}
           </button>
         </div>
-        {busyId === 'deck' && (
-          <div className="mt-6">
-            <Working what="the argument" />
-          </div>
-        )}
+        {busyId === 'deck' && <Writing what="the argument" />}
         {problem && (
           <div className="mt-6">
             <Problem problem={problem} onRetry={buildDeck} />
@@ -541,9 +533,7 @@ export default function Page() {
             disabled={busyId !== null}
           />
           {busyId && busyId !== 'compose' && (
-            <div className="mt-5">
-              <Working what={findFormat(busyId, custom)?.name ?? 'your document'} />
-            </div>
+            <Writing what={findFormat(busyId, custom)?.name ?? 'your document'} />
           )}
           {problem && (
             <div className="mt-5">

@@ -3,6 +3,22 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.13.3 — A quill, and a broadcast that broadcasts
+
+- **The broadcast strip did not appear until the page was reloaded.** The row
+  saved correctly; the header never heard about it. The admin panel and the
+  header each read the settings into their own state, so saving updated one and
+  left the other showing what it had read on page load. There is now one shared
+  copy with subscribers, and `BroadcastChannel` carries it to other tabs — which
+  for a notice everybody is meant to see is the behaviour anyone would assume.
+- **The wait is a quill writing.** Three lines of ink laid down in bursts, with a
+  beat at the end of each word and a longer one at the end of a line, and a nib
+  that rides the path so it is always at the wet end of the stroke. It covers the
+  screen, because there is nothing else to do while a document is being written
+  and a modal that says so is more honest than a page that looks available and is
+  not. It also says what the next screen is for, which is where the rewrite
+  control lives.
+
 ## 0.13.2 — Landing at the top of the screen you just opened
 
 Choosing a template from halfway down the store left you halfway down the form,
