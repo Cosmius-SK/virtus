@@ -3,6 +3,18 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.13.2 — Landing at the top of the screen you just opened
+
+Choosing a template from halfway down the store left you halfway down the form,
+past the sentence explaining what the form is for. Every stage now starts at the
+top of its own screen.
+
+That was the real cause of a control being reported missing twice: the rewrite
+lives on the screen *after* the one being looked at, and the line saying so was
+scrolled off. The fill screen now says what happens next in two places — in the
+opening line, and on the sticky bar beside the button, which is visible however
+far down you are.
+
 ## 0.13.1 — It works on a phone, and the rewrite can be found
 
 The per-section rewrite was reported as missing. It was not missing — six of

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Capture } from '@/components/Capture';
 import { Compose, type Proposal, type Turn } from '@/components/Compose';
 import { DocEditor } from '@/components/DocEditor';
@@ -53,6 +53,14 @@ export default function Page() {
   const [noteId, setNoteId] = useState<string | null>(null);
 
   const format = formatId ? findFormat(formatId, custom) : undefined;
+
+  // Every stage is a different screen, so it starts at the top of that screen.
+  // Without this, choosing a template from halfway down the store lands you
+  // halfway down the form — past the sentence explaining what the form is, which
+  // is how a control on the screen after it came to be reported missing twice.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [stage]);
 
   async function keepNote(text: string, structure?: Structure): Promise<string> {
     const id = newId();
