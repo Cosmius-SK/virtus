@@ -155,3 +155,59 @@ export async function clearDraft(): Promise<void> {
   await db.drafts.delete(ID);
   setHint(false);
 }
+
+/* ------------------------------------------------------------------------- *
+ * Saved templates.
+ *
+ * The custom-deck note above is one row saved at typing speed. A part-filled
+ * template is the same idea with more in it: somebody opened a template, typed
+ * half of what they knew, and was interrupted. Losing that is losing the only
+ * copy of thinking they had already done.
+ *
+ * Six per person, oldest dropped. A draft list long enough to need searching is
+ * a second document library, and the reason to come back to a draft expires —
+ * a status report abandoned three weeks ago is not worth resuming, it is worth
+ * starting again from what happened since.
+ * ------------------------------------------------------------------------- */
+const KEEP = 6;
+
+export async function savedDrafts(): Promise<Draft[]> {
+  const rows = await db.drafts.where('ownerId').equals(ownerId()).toArray();
+  return rows
+    .filter((d) => d.formatId && !d.deletedAt)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/** Write a template draft, and keep the list to six by dropping the oldest. */
+export async function saveTemplateDraft(draft: {
+  id: string;
+  formatId: string;
+  formatName: string;
+  parts: Record<string, string>;
+  extra: string;
+}): Promise<void> {
+  const now = Date.now();
+  const existing = await db.drafts.get(draft.id);
+  const text = [...Object.values(draft.parts), draft.extra]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(' · ');
+  await db.drafts.put({
+    id: draft.id,
+    ownerId: ownerId(),
+    text,
+    formatId: draft.formatId,
+    formatName: draft.formatName,
+    parts: draft.parts,
+    extra: draft.extra,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  });
+
+  const all = await savedDrafts();
+  for (const old of all.slice(KEEP)) await db.drafts.delete(old.id);
+}
+
+export async function discardDraft(id: string): Promise<void> {
+  await db.drafts.delete(id);
+}
