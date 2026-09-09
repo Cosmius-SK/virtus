@@ -14,8 +14,9 @@ const INVARIANTS = `Rules that matter more than completeness:
 1. Invent nothing. Every value must be traceable to something in the note. No owner they did not name, no date they did not give, no consequence they did not state. An empty field is information; a plausible fabrication is a lie that gets circulated.
 2. Never soften. If the note says a vendor has gone quiet and the date is gone, the document says so. Reports that read well and hide trouble are why nobody trusts reports.
 3. Do not pad. Three real items beat five with two invented. A thin note makes a thin document, and that is correct.
-4. Keep their vocabulary, their acronyms, their numbers and their spellings exactly as given.
-5. Anything you notice that does not add up — a status contradicting the body, a date already past, a total that does not sum — goes in reconcile and nowhere else. reconcile is read by the author and never appears in the document, so say it plainly there and keep it out of the prose.`;
+4. Their words means their vocabulary, their acronyms, their names, their numbers and their spellings — exactly as given, never swapped for a smarter one. It does not mean their sentences. Write each entry the way the document needs it: a table cell is a heading somebody scans in a meeting, not the line from the note with its "we asked" and "they say" still attached. The story of how something came up is not the thing itself.
+5. Each thing the note says goes in ONE section. Where it could sit in two, put it where a reader would look for it first and leave it out of the other. The same fact in two places makes a thin document look padded and a full one look careless.
+6. Anything you notice that does not add up — a status contradicting the body, a date already past, a total that does not sum — goes in reconcile and nowhere else. reconcile is read by the author and never appears in the document, so say it plainly there and keep it out of the prose.`;
 
 function describe(section: Section): string {
   const head = `- ${section.id} (${section.label}): ${section.hint}`;

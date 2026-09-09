@@ -3,6 +3,29 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.14.1 — What counts as a risk, and how it is written
+
+Three things the first real status report got wrong. All of them are hints, not
+code — which is the point: the care goes in the hints.
+
+- **A fact is not a risk.** The first test produced six, of which three were
+  facts — an environment not updated, somebody on leave, work carried over
+  again. All true, all in the note, none of them risks, and each one crowding
+  out something that was. The test is now stated: it has to be something that
+  could still go wrong *and* would cost something if it did.
+- **Their words, not their sentences.** A risk read "asked for 3 weeks ago,
+  marcus chased twice, they say next week every week" — the story of how it came
+  up, in a cell where a director expected a heading. Their terms, names and
+  numbers stay exactly as given; the sentence gets written. It says "Northgate
+  API spec 3 weeks overdue" now.
+- **One fact, one section.** Somebody's leave appeared in Upcoming Activities
+  and again in Risks. The same fact in two places makes a thin document look
+  padded and a full one look careless.
+
+Applied to every format that asks for a risk — a new test found two that had
+been missed — and the writing rule extends to RAID's Issues, which also has to
+be told apart from its Risks.
+
 ## 0.14.0 — Type that fits, and risks that are never dropped
 
 Two problems from the same cause: the design was deciding things only the

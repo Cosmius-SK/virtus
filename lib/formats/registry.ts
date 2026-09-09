@@ -69,6 +69,35 @@ const IMPACT = col(
 );
 const MITIGATION = col('mitigation', 'Mitigation', 'The plan, if the note gives one. Empty otherwise.', 2.2);
 
+/**
+ * The hardest cell in the building to get right.
+ *
+ * A real note describes a risk as a story — who asked whom, how many times, what
+ * they keep saying. Copying that story into a table gives a director a paragraph
+ * where they expected a heading, and it happened on the first real test: "asked
+ * for 3 weeks ago, marcus chased twice, they say next week every week" instead
+ * of "Northgate API spec 3 weeks overdue".
+ */
+const RISK = (width: number) =>
+  col(
+    'risk',
+    'Risk / Challenge',
+    'Name it in one line, as a heading somebody scans in a meeting: "Northgate API spec 3 weeks overdue". Their terms, their names and their numbers exactly as given — but written, not the sentence from the note. Who chased whom and how often is the story of how it came up; that belongs in Mitigation or nowhere.',
+    width,
+  );
+
+/**
+ * What counts as one.
+ *
+ * The first real test produced six risks, of which three were facts: an
+ * environment not updated, somebody on leave, work carried over again. All true,
+ * all in the note, none of them risks — and each one crowds out something that
+ * is. "Risks and challenges raised in the note" invited every loose end on the
+ * page, because every loose end is a challenge to somebody.
+ */
+const RISK_TEST =
+  'Only what could still go wrong AND would cost something if it did. A fact is not a risk: an environment not updated, a person on leave, work carried over again — those belong in the body of the report unless the note says what they threaten. If you cannot say what it would cost, that is the sign it is not one. Four real risks beat six with two padding them.';
+
 export const FORMATS: FormatDef[] = [
   {
     id: 'weekly-status',
@@ -91,8 +120,8 @@ export const FORMATS: FormatDef[] = [
         list('done', 'Key Accomplishments', 'What actually moved. Completed things, not started things.', 0.72),
         list('next', 'Upcoming Activities', 'What is committed for next period.', 0.72),
       ),
-      table('risks', 'Key Risks / Challenges', 'Risks and challenges raised in the note.', [
-        col('risk', 'Risk / Challenge', 'The risk, in their words.', 2.1),
+      table('risks', 'Key Risks / Challenges', RISK_TEST, [
+        RISK(2.1),
         IMPACT,
         RAISED,
         OWNER,
@@ -112,14 +141,19 @@ export const FORMATS: FormatDef[] = [
     outputs: ['pptx', 'docx', 'pdf'],
     sections: [
       para('summary', 'Position', 'One or two sentences on what the log says overall.', 0.42),
-      table('risks', 'Risks', 'Things that might happen.', [
-        col('risk', 'Risk', 'The risk, in their words.', 2.6),
+      table('risks', 'Risks', `Things that MIGHT still happen. Anything that already has is an Issue and belongs in the table below, not here. ${RISK_TEST}`, [
+        { ...RISK(2.6), label: 'Risk' },
         IMPACT,
         OWNER,
         col('response', 'Response', 'What is being done, if stated.', 2.0),
       ], 0.72, 3),
-      table('issues', 'Issues', 'Things that have already happened.', [
-        col('issue', 'Issue', 'The issue, in their words.', 2.6),
+      table('issues', 'Issues', 'Things that have ALREADY happened and are costing something now. If it has not happened yet it is a Risk and belongs in the table above. If it happened and was dealt with, it belongs in neither.', [
+        col(
+          'issue',
+          'Issue',
+          'Name it in one line, as a heading somebody scans: "2 accounts failed to reconcile in the dry run". Their terms and their numbers exactly as given, but written — not the sentence from the note.',
+          2.6,
+        ),
         IMPACT,
         OWNER,
         DUE,
@@ -210,8 +244,8 @@ export const FORMATS: FormatDef[] = [
         list('affected', 'Systems Affected', 'What this touches. Only what is named.', 0.6, 5),
         list('backout', 'Backout Plan', 'How to undo it, and how long that takes.', 0.6, 5),
       ),
-      table('risks', 'Risks', 'What could go wrong during the change.', [
-        col('risk', 'Risk', 'The risk.', 3.0),
+      table('risks', 'Risks', `What could go wrong during this change. ${RISK_TEST}`, [
+        { ...RISK(3.0), label: 'Risk' },
         IMPACT,
         MITIGATION,
       ], 0.56, 3),
@@ -777,8 +811,8 @@ export const FORMATS: FormatDef[] = [
         OWNER,
         col('note', 'Note', 'What is going on, if the note says.', 3.2),
       ], 0.9, 6),
-      table('risks', 'Risks Needing This Group', 'Only risks the note escalates.', [
-        col('risk', 'Risk', 'The risk.', 2.6),
+      table('risks', 'Risks Needing This Group', `Only what the note escalates to this group — something they are being asked to act on, not the whole log. ${RISK_TEST}`, [
+        { ...RISK(2.6), label: 'Risk' },
         IMPACT,
         OWNER,
         col('ask', 'What We Need', 'What is being asked of the committee, if stated.', 2.4),
