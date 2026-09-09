@@ -77,7 +77,12 @@ These come from the brief, and each one cost real time in biblio.
 11. **No microphone** (lesson 12.1). biblio built one on the browser's speech API
    and removed it after a week. Point at the device's own dictation and do not
    offer a worse button beside it.
-12. **The changelog is the single source of release notes** (§8.7). Written
+12. **A slide has an edge; nothing falls off it silently.** Content that will not
+    fit continues onto another slide, or the slide says how many rows were left
+    off. Never a quiet `slice`. A risk that was on the review screen and is not
+    in the file is how a risk nobody was told about reaches a document everybody
+    signed — and it is invisible, because the file still opens.
+13. **The changelog is the single source of release notes** (§8.7). Written
     before shipping, parsed at build time by `next.config.mjs`. There is no
     second copy — do not add one.
 
@@ -142,6 +147,8 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `lib/docs/format.ts` | Sections → Word. |
 | `lib/pdf/format.ts` | Sections → PDF. |
 | `lib/deck/master.ts` | The **client's** palette and typeface — what goes *into* a document. Request-scoped, so an uploaded house style cannot leak between two renders in flight. |
+| `lib/deck/fit.ts` | How much room text needs and what size it has to be. Isomorphic on purpose — the editor needs the same answers. |
+| `components/Writing.tsx` | The wait. A quill writing, over the screen, because there is nothing else to do. |
 | `lib/deck/status.ts` | The status vocabulary and its colours. Its own file so the editor can read the names without pulling the palette into the browser — and because a house style must **never** change these. |
 | `lib/house.ts`, `app/api/house` | Reading a theme out of an uploaded .pptx/.potx/.docx/.dotx. Six accents and two typefaces. Never layouts, masters or logos. |
 | `lib/admin/`, `components/admin/`, `app/admin` | The admin space: templates built here, the broadcast strip, the house style. |
@@ -184,6 +191,9 @@ still opens, it is just wrong, and it has already been sent.
   input.
 - `test/render.test.ts` covers the seven shapes degrading rather than being
   faked.
+- `test/fit.test.ts` covers the one thing a slide can do that a document cannot:
+  run out of room. It asserts that nothing approved on the screen is missing
+  from the file, and that type shrinks on demand rather than always.
 - `test/admin.test.ts` covers what the admin space lets somebody hand the
   engine: a template definition that did not come from the registry, and a
   palette that did not come from `master.ts`. Both fail silently — a malformed
