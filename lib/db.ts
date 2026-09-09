@@ -44,10 +44,28 @@ export interface Note extends Owned {
   structure?: Structure;
 }
 
-/** The single in-progress capture. One draft, not a list. */
+/**
+ * WORK IN PROGRESS. Something started and not yet produced.
+ *
+ * There are two kinds and they share a table because they are the same thing at
+ * different stages: `id: 'draft'` is the single custom-deck note, saved at
+ * typing speed so words are never lost (§8.1); a row with a `formatId` is a
+ * template part-filled and left. Both are private thinking, not artefacts (§4),
+ * and neither has produced a file.
+ *
+ * Kept to six per person. A draft list long enough to need searching is a
+ * second document library, and the reason to come back to a draft expires.
+ */
 export interface Draft extends Owned {
-  id: 'draft';
+  /** 'draft' for the custom-deck note; a uuid for a saved template. */
+  id: string;
+  /** The custom-deck note, or a line of what was written, for the list. */
   text: string;
+  formatId?: string;
+  formatName?: string;
+  /** What was typed into each section's box. */
+  parts?: Record<string, string>;
+  extra?: string;
 }
 
 /**

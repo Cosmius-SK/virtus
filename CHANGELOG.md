@@ -3,6 +3,40 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.14.0 — Type that fits, and risks that are never dropped
+
+Two problems from the same cause: the design was deciding things only the
+content knows.
+
+- **Boxes are sized by what is in them.** "Key Decisions: None" held a box two
+  thirds empty while the section beside it ran past its own edge, because every
+  box got the height its format declared and every font a fixed size. Sections
+  now grow and shrink around the declared height — within bounds, so one long
+  section cannot redesign the page — and the type is sized to the room it ends
+  up with.
+- **Three risks was a guess.** It held until a project had four. How many rows
+  fit is now measured, and what does not fit is never silently dropped: by
+  default it continues on another slide, or, if you choose to keep one page, the
+  slide names how many were left off. The choice appears on the review screen
+  only when something is actually too long. Word and PDF are unaffected — only a
+  slide has an edge.
+
+## 0.13.3 — A quill, and a broadcast that broadcasts
+
+- **The broadcast strip did not appear until the page was reloaded.** The row
+  saved correctly; the header never heard about it. The admin panel and the
+  header each read the settings into their own state, so saving updated one and
+  left the other showing what it had read on page load. There is now one shared
+  copy with subscribers, and `BroadcastChannel` carries it to other tabs — which
+  for a notice everybody is meant to see is the behaviour anyone would assume.
+- **The wait is a quill writing.** Three lines of ink laid down in bursts, with a
+  beat at the end of each word and a longer one at the end of a line, and a nib
+  that rides the path so it is always at the wet end of the stroke. It covers the
+  screen, because there is nothing else to do while a document is being written
+  and a modal that says so is more honest than a page that looks available and is
+  not. It also says what the next screen is for, which is where the rewrite
+  control lives.
+
 ## 0.13.2 — Landing at the top of the screen you just opened
 
 Choosing a template from halfway down the store left you halfway down the form,

@@ -1,6 +1,7 @@
 import 'server-only';
 import PptxGenJS from 'pptxgenjs';
 import type { FormatDef, FormatDoc, Section } from '@/lib/formats/types';
+import { fitSize, linesFor, linesForList, linesForRow, lineHeightIn, neededIn } from './fit';
 import { BRAND, FOOTER } from './master';
 import { STATUS } from './status';
 
@@ -25,6 +26,32 @@ const BANNER_H = 0.38;
 const BAR_H = 0.26;
 const FOOTER_H = 0.42;
 const GAP = 0.08;
+
+/**
+ * The size text starts at, and the size below which it is not worth shrinking.
+ *
+ * Below the floor a slide stops being presentable — six point on a projector is
+ * a paragraph nobody in the third row can read — so past that point the answer
+ * is fewer rows, not smaller type.
+ */
+const NOMINAL = { paragraph: 9.5, list: 9.5, table: 8.5 } as const;
+const FLOOR = 7;
+
+/**
+ * What happens to content that will not fit on the page.
+ *
+ * `continue` puts it on another slide, `fit` keeps one page and says how much
+ * was left off. Never silence: a risk that vanished between the screen and the
+ * file is the worst thing this renderer could do.
+ */
+export type Overflow = 'continue' | 'fit';
+
+/** What a section could not fit, so the caller can decide where it goes. */
+interface Left {
+  section: Section;
+  items: string[];
+  rows: Record<string, string>[];
+}
 
 type Slide = ReturnType<PptxGenJS['addSlide']>;
 
@@ -82,26 +109,57 @@ function asRows(value: unknown): Record<string, string>[] {
 function drawParagraph(slide: Slide, s: Section, v: unknown, x: number, y: number, w: number, h: number) {
   bar(slide, s.label, x, y, w);
   box(slide, x, y + BAR_H, w, h);
-  slide.addText(typeof v === 'string' && v.trim() ? v : '—', {
+  const text = typeof v === 'string' && v.trim() ? v : '—';
+  // Sized to the room it was given rather than to a constant, because the room
+  // it was given already accounts for how much there is to say.
+  const size = fitSize((pt) => linesFor(text, w, pt), h - 0.06, NOMINAL.paragraph, FLOOR);
+  slide.addText(text, {
     x: x + 0.1,
     y: y + BAR_H + 0.03,
     w: w - 0.2,
     h: h - 0.06,
     fontFace: BRAND.face,
-    fontSize: 9,
+    fontSize: size,
     color: BRAND.ink,
     valign: 'top',
     shrinkText: true,
   });
 }
 
-function drawList(slide: Slide, s: Section, v: unknown, x: number, y: number, w: number, h: number) {
+function drawList(
+  slide: Slide,
+  s: Section,
+  v: unknown,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): Left | null {
   bar(slide, s.label, x, y, w);
   box(slide, x, y + BAR_H, w, h);
-  const items = asStrings(v).slice(0, s.max ?? 6);
+  const all = asStrings(v);
+  const inner = h - 0.06;
+  const size = fitSize((pt) => linesForList(all, w, pt), inner, NOMINAL.list, FLOOR);
+
+  // At the floor, the answer is fewer items rather than smaller type. Take as
+  // many as the box holds and hand the rest back.
+  let shown = all;
+  let left: string[] = [];
+  if (linesForList(all, w, size) * lineHeightIn(size) > inner) {
+    shown = [];
+    let used = 0;
+    for (const item of all) {
+      const cost = linesForList([item], w, size) * lineHeightIn(size);
+      if (used + cost > inner) break;
+      shown.push(item);
+      used += cost;
+    }
+    left = all.slice(shown.length);
+  }
+
   slide.addText(
-    items.length
-      ? items.map((text) => ({
+    shown.length
+      ? shown.map((text) => ({
           text,
           options: { bullet: { characterCode: '2022' }, paraSpaceAfter: 2 },
         }))
@@ -110,17 +168,28 @@ function drawList(slide: Slide, s: Section, v: unknown, x: number, y: number, w:
       x: x + 0.1,
       y: y + BAR_H + 0.03,
       w: w - 0.2,
-      h: h - 0.06,
+      h: inner,
       fontFace: BRAND.face,
-      fontSize: 9,
+      fontSize: size,
       color: BRAND.ink,
       valign: 'top',
       shrinkText: true,
     },
   );
+
+  return left.length ? { section: s, items: left, rows: [] } : null;
 }
 
-function drawTable(slide: Slide, s: Section, v: unknown, x: number, y: number, w: number, h: number) {
+function drawTable(
+  slide: Slide,
+  s: Section,
+  v: unknown,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  overflow: Overflow,
+): Left | null {
   const cols = s.columns ?? [];
   if (!cols.length) return drawList(slide, s, v, x, y, w, h);
 
@@ -132,9 +201,49 @@ function drawTable(slide: Slide, s: Section, v: unknown, x: number, y: number, w
 
   const total = cols.reduce((n, c) => n + c.width, 0);
   const colW = cols.map((c) => (c.width / total) * w);
-  const data = asRows(v).slice(0, s.max ?? 4);
-  const body = data.length
-    ? data.map((row) => cols.map((c) => ({ text: row[c.id] || '—', options: {} })))
+  const all = asRows(v);
+
+  // How many rows fit is a measurement, not a number in the format. Three risks
+  // was a guess that held until a project had four, and dropping the fourth
+  // silently is the one thing this must never do.
+  const size = fitSize(
+    (pt) =>
+      all.reduce(
+        (n, row) => n + linesForRow(cols.map((c) => row[c.id] ?? ''), colW, pt),
+        1,
+      ),
+    h,
+    NOMINAL.table,
+    FLOOR,
+  );
+  const lineH = lineHeightIn(size);
+  const headerH = lineH + 0.08;
+
+  let used = headerH;
+  const shown: Record<string, string>[] = [];
+  for (const row of all) {
+    const rowH = linesForRow(cols.map((c) => row[c.id] ?? ''), colW, size) * lineH + 0.08;
+    if (used + rowH > h) break;
+    shown.push(row);
+    used += rowH;
+  }
+  const left = all.slice(shown.length);
+
+  // On one page, the rows that did not fit are named rather than removed. The
+  // count is the point: "+3 more" tells a reader the document is longer than
+  // the slide, which is true and which they can act on.
+  const note =
+    left.length && overflow === 'fit'
+      ? [
+          cols.map((c, i) => ({
+            text: i === 0 ? `+${left.length} more — see the Word or PDF version` : '',
+            options: { italic: true, color: BRAND.muted },
+          })),
+        ]
+      : [];
+
+  const body = shown.length
+    ? shown.map((row) => cols.map((c) => ({ text: row[c.id] || '—', options: {} })))
     : [cols.map((_, i) => ({ text: i === 0 ? 'None' : '—', options: {} }))];
 
   slide.addTable(
@@ -144,21 +253,23 @@ function drawTable(slide: Slide, s: Section, v: unknown, x: number, y: number, w
         options: { fill: { color: BRAND.accentLine }, color: 'FFFFFF', bold: true },
       })),
       ...body,
+      ...note,
     ],
     {
       x,
       y: y + BAR_H,
       w,
       colW,
-      rowH: Math.max(0.18, h / (body.length + 1) - 0.01),
       fontFace: BRAND.face,
-      fontSize: 8,
+      fontSize: size,
       color: BRAND.ink,
       border: { pt: 0.75, color: BRAND.rule },
       valign: 'middle',
       autoPage: false,
     },
   );
+
+  return left.length ? { section: s, items: [], rows: left } : null;
 }
 
 function drawFields(slide: Slide, s: Section, v: unknown, doc: FormatDoc, format: FormatDef, x: number, y: number, w: number) {
@@ -200,6 +311,47 @@ function drawFields(slide: Slide, s: Section, v: unknown, doc: FormatDoc, format
       valign: 'middle',
     },
   );
+}
+
+/**
+ * How much room a section's actual content wants, in inches.
+ *
+ * The format's declared height says what the design expects; this says what is
+ * really there. Neither alone is right — the design stops one long section
+ * eating the page, and the content stops a one-word section holding a box two
+ * thirds empty, which is what a real status report looked like before this.
+ */
+function needFor(section: Section, value: unknown, w: number): number {
+  switch (section.kind) {
+    case 'paragraph': {
+      const text = typeof value === 'string' ? value : '';
+      return neededIn(linesFor(text || '—', w, NOMINAL.paragraph), NOMINAL.paragraph);
+    }
+    case 'list':
+      return neededIn(linesForList(asStrings(value), w, NOMINAL.list), NOMINAL.list);
+    case 'table': {
+      const cols = section.columns ?? [];
+      const total = cols.reduce((n, c) => n + c.width, 0) || 1;
+      const colW = cols.map((c) => (c.width / total) * w);
+      const lines = asRows(value).reduce(
+        (n, row) => n + linesForRow(cols.map((c) => row[c.id] ?? ''), colW, NOMINAL.table),
+        1,
+      );
+      return neededIn(lines, NOMINAL.table, 0.16);
+    }
+    case 'fields':
+      return section.height;
+  }
+}
+
+/**
+ * A section may grow or shrink around what its format asked for, but not
+ * without limit: past these bounds one section's content starts redesigning
+ * the page for every other one.
+ */
+function weightFor(section: Section, value: unknown, w: number): number {
+  const declared = section.height;
+  return Math.min(declared * 2.2, Math.max(declared * 0.55, needFor(section, value, w)));
 }
 
 /**
@@ -251,7 +403,7 @@ function renderPack(pptx: PptxGenJS, format: FormatDef, doc: FormatDoc): void {
         drawList(slide, roomy, value, M, 0.9, FULL, 3.1);
         break;
       case 'table':
-        drawTable(slide, roomy, value, M, 0.9, FULL, 3.1);
+        drawTable(slide, roomy, value, M, 0.9, FULL, 3.1, 'continue');
         break;
     }
 
@@ -268,7 +420,12 @@ function renderPack(pptx: PptxGenJS, format: FormatDef, doc: FormatDoc): void {
   }
 }
 
-export async function renderFormat(format: FormatDef, doc: FormatDoc): Promise<Buffer> {
+export async function renderFormat(
+  format: FormatDef,
+  doc: FormatDoc,
+  opts: { overflow?: Overflow } = {},
+): Promise<Buffer> {
+  const overflow = opts.overflow ?? 'continue';
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
   pptx.theme = { headFontFace: BRAND.faceHeading, bodyFontFace: BRAND.face };
@@ -297,20 +454,29 @@ export async function renderFormat(format: FormatDef, doc: FormatDoc): Promise<B
   });
 
   const laid = rows(format.sections);
+  const each2 = (FULL - 0.14) / 2;
 
-  // Normalise so the declared heights fit the slide rather than run off it.
+  // Allocate by what is actually there, then normalise to the page. Weighting
+  // by the declared height alone gave "Key Decisions: None" a box two thirds
+  // empty next to a section running past its own edge — the design deciding
+  // something only the content knows.
   const available = H - (0.12 + BANNER_H + GAP) - FOOTER_H;
-  const asked = laid.reduce(
-    (n, row) => n + Math.max(...row.map((s) => s.height)) + (row[0].kind === 'fields' ? 0 : BAR_H) + GAP,
-    0,
+  const weights = laid.map((row) =>
+    Math.max(
+      ...row.map((section) =>
+        weightFor(section, doc.sections[section.id], row.length === 2 ? each2 : FULL),
+      ),
+    ),
   );
-  const scale = asked > available ? available / asked : 1;
+  const chrome = laid.reduce((n, row) => n + (row[0].kind === 'fields' ? 0 : BAR_H) + GAP, 0);
+  const scale = (available - chrome) / weights.reduce((n, x) => n + x, 0);
 
+  const left: Left[] = [];
   let y = 0.12 + BANNER_H + GAP;
-  for (const row of laid) {
-    const rowH = Math.max(...row.map((s) => s.height)) * scale;
+  laid.forEach((row, at) => {
+    const rowH = weights[at] * scale;
     const isFields = row[0].kind === 'fields';
-    const each = row.length === 2 ? (FULL - 0.14) / 2 : FULL;
+    const each = row.length === 2 ? each2 : FULL;
 
     row.forEach((section, i) => {
       const x = M + i * (each + 0.14);
@@ -318,16 +484,62 @@ export async function renderFormat(format: FormatDef, doc: FormatDoc): Promise<B
       switch (section.kind) {
         case 'paragraph':
           return drawParagraph(slide, section, value, x, y, each, rowH);
-        case 'list':
-          return drawList(slide, section, value, x, y, each, rowH);
-        case 'table':
-          return drawTable(slide, section, value, x, y, each, rowH);
+        case 'list': {
+          const over = drawList(slide, section, value, x, y, each, rowH);
+          if (over) left.push(over);
+          return;
+        }
+        case 'table': {
+          const over = drawTable(slide, section, value, x, y, each, rowH, overflow);
+          if (over) left.push(over);
+          return;
+        }
         case 'fields':
           return drawFields(slide, section, value, doc, format, x, y, each);
       }
     });
 
     y += rowH + (isFields ? 0 : BAR_H) + GAP;
+  });
+
+  // Anything that did not fit gets its own slide rather than disappearing.
+  // A one-pager that quietly became a summary of itself is how a risk nobody
+  // was told about ends up in a document everybody signed.
+  if (overflow === 'continue') {
+    for (const over of left) {
+      const extra = pptx.addSlide();
+      extra.background = { color: BRAND.paper };
+      extra.addText(`${doc.title} — ${over.section.label} (continued)`, {
+        x: M,
+        y: 0.12,
+        w: FULL,
+        h: BANNER_H,
+        fill: { color: BRAND.accent },
+        color: 'FFFFFF',
+        fontFace: BRAND.faceHeading,
+        fontSize: 15,
+        bold: true,
+        valign: 'middle',
+        margin: [0, 8, 0, 8],
+      });
+      const roomy = { ...over.section, height: 3.6 };
+      const rest = over.rows.length ? over.rows : over.items;
+      if (over.rows.length) {
+        drawTable(extra, roomy, rest, M, 0.12 + BANNER_H + GAP, FULL, 3.6, 'fit');
+      } else {
+        drawList(extra, roomy, rest, M, 0.12 + BANNER_H + GAP, FULL, 3.6);
+      }
+      extra.addText(doc.title, {
+        x: M,
+        y: H - 0.34,
+        w: 6,
+        h: 0.22,
+        fontFace: BRAND.face,
+        fontSize: 8,
+        color: BRAND.muted,
+        valign: 'middle',
+      });
+    }
   }
 
   slide.addText(FOOTER, {

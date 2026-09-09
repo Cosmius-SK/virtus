@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Capture } from '@/components/Capture';
 import { Compose, type Proposal, type Turn } from '@/components/Compose';
 import { DocEditor } from '@/components/DocEditor';
@@ -9,10 +9,11 @@ import { Problem } from '@/components/Problem';
 import { TeachIt } from '@/components/TeachIt';
 import { TemplateFill, noteFrom, type Filled } from '@/components/TemplateFill';
 import { TemplateStore } from '@/components/TemplateStore';
-import { Working } from '@/components/Working';
+import { Writing } from '@/components/Writing';
 import { useSettings } from '@/lib/admin/use';
 import { db, newId } from '@/lib/db';
-import { clearDraft } from '@/lib/drafts';
+import { clearDraft, discardDraft, savedDrafts, saveTemplateDraft } from '@/lib/drafts';
+import type { Draft } from '@/lib/db';
 import { findFormat, useFormats } from '@/lib/formats/all';
 import type { FormatDef, FormatDoc } from '@/lib/formats/types';
 import { friendly, type Friendly } from '@/lib/friendly';
@@ -45,6 +46,33 @@ export default function Page() {
   /** What was actually sent to be read. Kept so a rewrite has the same source. */
   const [source, setSource] = useState('');
   const [rewriting, setRewriting] = useState<string | null>(null);
+  /** What the slide does with a section longer than a page. Never silence. */
+  const [overflow, setOverflow] = useState<'continue' | 'fit'>('continue');
+  /** The draft this filling-in belongs to, so leaving does not lose it. */
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+
+  const loadDrafts = useCallback(() => {
+    void savedDrafts().then(setDrafts);
+  }, []);
+  useEffect(loadDrafts, [loadDrafts]);
+
+  // Saved at typing speed, a beat behind the keyboard. Anything typed into a
+  // template is the only copy of thinking somebody has already done, and the
+  // way it is lost is closing a tab, which gives no warning (§8.1).
+  useEffect(() => {
+    if (stage !== 'fill' || !chosen || !draftId) return;
+    const timer = window.setTimeout(() => {
+      void saveTemplateDraft({
+        id: draftId,
+        formatId: chosen.id,
+        formatName: chosen.name,
+        parts: filled.parts,
+        extra: filled.extra,
+      }).then(loadDrafts);
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [stage, chosen, draftId, filled, loadDrafts]);
 
   const [formatId, setFormatId] = useState<string | null>(null);
   const [doc, setDoc] = useState<FormatDoc | null>(null);
@@ -97,6 +125,11 @@ export default function Page() {
       setStage('doc');
       setNotices(unknownNames(text, known));
       void clearDraft();
+      // It became a document, so it has stopped being a draft.
+      if (draftId) {
+        void discardDraft(draftId).then(loadDrafts);
+        setDraftId(null);
+      }
       await recordRun({
         formatId: id,
         formatName: label,
@@ -165,8 +198,24 @@ export default function Page() {
    * shape is cheaper for everyone than asking blind and reading around the gap.
    */
   function chooseTemplate(next: FormatDef) {
-    if (chosen?.id !== next.id) setFilled({ parts: {}, extra: '' });
+    if (chosen?.id !== next.id) {
+      setFilled({ parts: {}, extra: '' });
+      setDraftId(newId());
+    } else if (!draftId) {
+      setDraftId(newId());
+    }
     setChosen(next);
+    setProblem(null);
+    setStage('fill');
+  }
+
+  /** Pick up where somebody left off, in the template they left off in. */
+  function resume(draft: Draft) {
+    const format = draft.formatId ? findFormat(draft.formatId, custom) : undefined;
+    if (!format) return;
+    setChosen(format);
+    setFilled({ parts: draft.parts ?? {}, extra: draft.extra ?? '' });
+    setDraftId(draft.id);
     setProblem(null);
     setStage('fill');
   }
@@ -292,7 +341,7 @@ export default function Page() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           isDoc
-            ? { doc, format: custom.find((f) => f.id === formatId), house: settings?.house }
+            ? { doc, format: custom.find((f) => f.id === formatId), house: settings?.house, overflow }
             : { outline, house: settings?.house },
         ),
         signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -344,11 +393,7 @@ export default function Page() {
           onBack={() => setStage('compose')}
           busy={busyId !== null}
         />
-        {busyId && (
-          <div className="mx-auto max-w-4xl px-4 pb-8 sm:px-6">
-            <Working what={chosen.name} />
-          </div>
-        )}
+        {busyId && <Writing what={chosen.name} />}
         {problem && (
           <div className="mx-auto max-w-4xl px-4 pb-8 sm:px-6">
             <Problem problem={problem} onRetry={generate} />
@@ -389,11 +434,7 @@ export default function Page() {
             {busyId === 'deck' ? 'Building the argument…' : 'Propose the argument'}
           </button>
         </div>
-        {busyId === 'deck' && (
-          <div className="mt-6">
-            <Working what="the argument" />
-          </div>
-        )}
+        {busyId === 'deck' && <Writing what="the argument" />}
         {problem && (
           <div className="mt-6">
             <Problem problem={problem} onRetry={buildDeck} />
@@ -413,6 +454,8 @@ export default function Page() {
           onRender={render}
           onRewriteSection={rewriteSection}
           onRewriteAll={rewriteAll}
+          overflow={overflow}
+          onOverflow={setOverflow}
           rewriting={rewriting}
           busy={busyId !== null || rewriting !== null}
           onBack={() => setStage(chosen ? 'fill' : 'compose')}
@@ -497,6 +540,52 @@ export default function Page() {
             </div>
           )}
 
+          {drafts.length > 0 && (
+            <section className="mb-6">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
+                Picked up where you left off
+              </p>
+              <ul className="space-y-2">
+                {drafts.map((draft) => (
+                  <li
+                    key={draft.id}
+                    className="flex items-start gap-3 rounded-lg border border-line bg-paper px-4 py-3 shadow-card"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium text-ink">{draft.formatName}</p>
+                      <p className="mt-0.5 truncate text-[12px] text-ink60">
+                        {draft.text || 'Nothing written yet'}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => resume(draft)}
+                        className="rounded border border-line px-2.5 py-1 text-[12px] text-ink60 transition hover:border-accent hover:text-accent"
+                      >
+                        Continue
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await discardDraft(draft.id);
+                          loadDrafts();
+                        }}
+                        className="text-[12px] text-ink40 transition hover:text-red-700"
+                      >
+                        Discard
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-ink40">
+                The last {drafts.length === 1 ? 'one' : drafts.length} you started and did not
+                finish. Six are kept; the oldest drops off.
+              </p>
+            </section>
+          )}
+
           <button
             type="button"
             disabled={busyId !== null}
@@ -541,9 +630,7 @@ export default function Page() {
             disabled={busyId !== null}
           />
           {busyId && busyId !== 'compose' && (
-            <div className="mt-5">
-              <Working what={findFormat(busyId, custom)?.name ?? 'your document'} />
-            </div>
+            <Writing what={findFormat(busyId, custom)?.name ?? 'your document'} />
           )}
           {problem && (
             <div className="mt-5">

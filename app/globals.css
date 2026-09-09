@@ -28,3 +28,111 @@ select {
   background: #ffd9c9;
   color: #131a24;
 }
+
+/* The writing animation (components/Writing.tsx).
+
+   Written here rather than in Tailwind's config because the rhythm is the whole
+   point, and the rhythm is what the keyframe stops below encode. A steady sweep
+   reads as a progress bar wearing a costume; a hand moves in bursts, with a
+   beat at the end of each word and a longer one at the end of a line. The
+   uneven stops are those beats.
+
+   Three lines share ONE cycle rather than each running its own: the first
+   version gave each line its own clock and put two nibs on the page at once.
+   A page is written a line at a time.
+
+   Two artefacts worth knowing about, because both look like nothing until they
+   are on screen. A round line-cap on a stroke with nothing drawn yet still
+   paints its cap — a dot sitting on an empty line — so a line is transparent
+   until its turn. And a nib whose opacity is set to 1 at the start and 0 at the
+   end fades out across its own stroke; it has to be held opaque and then cut. */
+
+@keyframes virtus-ink-1 {
+  0% { stroke-dashoffset: 100; opacity: 1; }
+  5.04% { stroke-dashoffset: 78; }
+  6.44% { stroke-dashoffset: 76; }
+  12.88% { stroke-dashoffset: 50; }
+  14.56% { stroke-dashoffset: 48; }
+  22.4% { stroke-dashoffset: 16; }
+  24.36% { stroke-dashoffset: 12; }
+  28% { stroke-dashoffset: 0; }
+  92% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes virtus-nib-1 {
+  0% { offset-distance: 0%; opacity: 1; }
+  5.04% { offset-distance: 22%; opacity: 1; }
+  6.44% { offset-distance: 24%; opacity: 1; }
+  12.88% { offset-distance: 50%; opacity: 1; }
+  14.56% { offset-distance: 52%; opacity: 1; }
+  22.4% { offset-distance: 84%; opacity: 1; }
+  24.36% { offset-distance: 88%; opacity: 1; }
+  28% { offset-distance: 100%; opacity: 1; }
+  28.01%, 100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes virtus-ink-2 {
+  0%, 30.99% { stroke-dashoffset: 100; opacity: 0; }
+  31% { stroke-dashoffset: 100; opacity: 1; }
+  36.04% { stroke-dashoffset: 78; }
+  37.44% { stroke-dashoffset: 76; }
+  43.88% { stroke-dashoffset: 50; }
+  45.56% { stroke-dashoffset: 48; }
+  53.4% { stroke-dashoffset: 16; }
+  55.36% { stroke-dashoffset: 12; }
+  59% { stroke-dashoffset: 0; }
+  92% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes virtus-nib-2 {
+  0%, 30.99% { offset-distance: 0%; opacity: 0; }
+  31% { offset-distance: 0%; opacity: 1; }
+  36.04% { offset-distance: 22%; opacity: 1; }
+  37.44% { offset-distance: 24%; opacity: 1; }
+  43.88% { offset-distance: 50%; opacity: 1; }
+  45.56% { offset-distance: 52%; opacity: 1; }
+  53.4% { offset-distance: 84%; opacity: 1; }
+  55.36% { offset-distance: 88%; opacity: 1; }
+  59% { offset-distance: 100%; opacity: 1; }
+  59.01%, 100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes virtus-ink-3 {
+  0%, 61.99% { stroke-dashoffset: 100; opacity: 0; }
+  62% { stroke-dashoffset: 100; opacity: 1; }
+  65.96% { stroke-dashoffset: 78; }
+  67.06% { stroke-dashoffset: 76; }
+  72.12% { stroke-dashoffset: 50; }
+  73.44% { stroke-dashoffset: 48; }
+  79.6% { stroke-dashoffset: 16; }
+  81.14% { stroke-dashoffset: 12; }
+  84% { stroke-dashoffset: 0; }
+  92% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes virtus-nib-3 {
+  0%, 61.99% { offset-distance: 0%; opacity: 0; }
+  62% { offset-distance: 0%; opacity: 1; }
+  65.96% { offset-distance: 22%; opacity: 1; }
+  67.06% { offset-distance: 24%; opacity: 1; }
+  72.12% { offset-distance: 50%; opacity: 1; }
+  73.44% { offset-distance: 52%; opacity: 1; }
+  79.6% { offset-distance: 84%; opacity: 1; }
+  81.14% { offset-distance: 88%; opacity: 1; }
+  84% { offset-distance: 100%; opacity: 1; }
+  84.01%, 100% { offset-distance: 100%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .virtus-writing * {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+  }
+  .virtus-writing [data-nib] {
+    display: none !important;
+  }
+}

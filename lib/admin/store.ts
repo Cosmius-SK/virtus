@@ -43,6 +43,56 @@ export async function settings(): Promise<Settings | undefined> {
   return row?.ownerId === ownerId() ? row : undefined;
 }
 
+/**
+ * One copy of the settings, and everyone watching it.
+ *
+ * The broadcast strip is set on one screen and shown on another — the admin
+ * panel and the header are two components that never meet. Each reading the
+ * database into its own state meant saving updated the panel and left the
+ * header showing what it had read on page load, so the banner only appeared
+ * after a refresh. Reported, correctly, as "the broadcast does not display".
+ *
+ * A module-level snapshot with subscribers fixes it without a state library:
+ * one read, one copy, everyone re-renders. `BroadcastChannel` extends the same
+ * to other tabs, which for this feature in particular is the behaviour anyone
+ * would assume — a notice everybody is meant to see should not wait for a
+ * reload in the tab that is already open.
+ */
+let snapshot: Settings | undefined;
+let loaded = false;
+const listeners = new Set<() => void>();
+
+const channel =
+  typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('virtus-settings');
+if (channel) channel.onmessage = () => void refreshSettings(false);
+
+function emit(): void {
+  for (const listener of listeners) listener();
+}
+
+export function subscribeSettings(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function settingsSnapshot(): Settings | undefined {
+  return snapshot;
+}
+
+export function settingsLoaded(): boolean {
+  return loaded;
+}
+
+/** Re-read and tell everyone. `tell` is false when reacting to another tab. */
+export async function refreshSettings(tell = true): Promise<void> {
+  snapshot = await settings();
+  loaded = true;
+  emit();
+  if (tell && channel) channel.postMessage('changed');
+}
+
 export async function setSettings(part: Partial<Pick<Settings, 'banner' | 'house'>>) {
   const now = Date.now();
   const existing = await settings();
@@ -55,4 +105,5 @@ export async function setSettings(part: Partial<Pick<Settings, 'banner' | 'house
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   });
+  await refreshSettings();
 }
