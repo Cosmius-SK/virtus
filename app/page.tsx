@@ -45,6 +45,8 @@ export default function Page() {
   /** What was actually sent to be read. Kept so a rewrite has the same source. */
   const [source, setSource] = useState('');
   const [rewriting, setRewriting] = useState<string | null>(null);
+  /** What the slide does with a section longer than a page. Never silence. */
+  const [overflow, setOverflow] = useState<'continue' | 'fit'>('continue');
 
   const [formatId, setFormatId] = useState<string | null>(null);
   const [doc, setDoc] = useState<FormatDoc | null>(null);
@@ -292,7 +294,7 @@ export default function Page() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           isDoc
-            ? { doc, format: custom.find((f) => f.id === formatId), house: settings?.house }
+            ? { doc, format: custom.find((f) => f.id === formatId), house: settings?.house, overflow }
             : { outline, house: settings?.house },
         ),
         signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -405,6 +407,8 @@ export default function Page() {
           onRender={render}
           onRewriteSection={rewriteSection}
           onRewriteAll={rewriteAll}
+          overflow={overflow}
+          onOverflow={setOverflow}
           rewriting={rewriting}
           busy={busyId !== null || rewriting !== null}
           onBack={() => setStage(chosen ? 'fill' : 'compose')}

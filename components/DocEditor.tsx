@@ -26,6 +26,8 @@ export function DocEditor({
   onRender,
   onRewriteSection,
   onRewriteAll,
+  overflow,
+  onOverflow,
   rewriting,
   busy,
   onBack,
@@ -36,6 +38,9 @@ export function DocEditor({
   onRender: (as: 'pptx' | 'docx' | 'pdf') => void;
   onRewriteSection: (sectionId: string, instruction: string) => void;
   onRewriteAll: (instruction: string) => void;
+  /** What the slide does with content that will not fit on one page. */
+  overflow: 'continue' | 'fit';
+  onOverflow: (next: 'continue' | 'fit') => void;
   /** Section id being rewritten, 'all' for the document, or null. */
   rewriting: string | null;
   busy: boolean;
@@ -121,6 +126,8 @@ export function DocEditor({
 
       <RewriteAll busy={busy} rewriting={rewriting === 'all'} onRewrite={onRewriteAll} />
 
+      <LongSections format={format} doc={doc} overflow={overflow} onOverflow={onOverflow} />
+
       <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {format.outputs.map((out, i) => (
           <button
@@ -201,11 +208,7 @@ function Control({
           rows={Math.max(3, items.length + 1)}
           className="w-full resize-none rounded border border-line px-3 py-2 text-sm leading-relaxed text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
         />
-        {section.max && items.length > section.max && (
-          <span className="mt-1 block text-xs text-ink40">
-            The document shows the first {section.max}.
-          </span>
-        )}
+
       </>
     );
   }
@@ -264,9 +267,7 @@ function Control({
       >
         + Add a row
       </button>
-      {section.max && rows.length > section.max && (
-        <p className="text-xs text-ink40">The document shows the first {section.max}.</p>
-      )}
+
     </div>
   );
 }
@@ -414,6 +415,73 @@ function RewriteAll({
       <p className="mt-1.5 text-[11px] text-ink40">
         This replaces every section, including any you have corrected. To change one part, use the
         star beside it.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * What the slide does with a section longer than a page.
+ *
+ * Offered only when something is actually longer than a page, because a choice
+ * about nothing is noise. Three risks fitted a slide until a project had four,
+ * and the old behaviour — take the first three, say so in small type on this
+ * screen, produce a file that does not mention the rest — is how a risk nobody
+ * was told about ends up in a document everybody signed.
+ *
+ * Word and PDF are unaffected. They have as many pages as they need; only a
+ * slide has an edge.
+ */
+function LongSections({
+  format,
+  doc,
+  overflow,
+  onOverflow,
+}: {
+  format: FormatDef;
+  doc: FormatDoc;
+  overflow: 'continue' | 'fit';
+  onOverflow: (next: 'continue' | 'fit') => void;
+}) {
+  const long = format.sections.filter((section) => {
+    const value = doc.sections[section.id];
+    const count = Array.isArray(value) ? value.length : 0;
+    return section.max !== undefined && count > section.max;
+  });
+  if (!long.length || !format.outputs.includes('pptx')) return null;
+
+  const names = long.map((s) => s.label).join(' and ');
+
+  return (
+    <div className="mt-4 rounded-lg border border-line bg-paper px-4 py-3.5 shadow-card">
+      <p className="text-[12px] leading-relaxed text-ink80">
+        {names} {long.length > 1 ? 'have' : 'has'} more than fits on one slide.
+      </p>
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {(
+          [
+            ['continue', 'Continue on another slide'],
+            ['fit', 'Keep to one slide'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onOverflow(id)}
+            className={`rounded border px-2.5 py-1 text-xs transition ${
+              overflow === id
+                ? 'border-accent bg-accent text-white'
+                : 'border-line text-ink60 hover:border-accent'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] leading-relaxed text-ink40">
+        {overflow === 'continue'
+          ? 'Nothing is left out. The extra rows get their own slide, headed “continued”.'
+          : 'The slide names how many rows were left off. Nothing is lost — the Word and PDF versions carry all of them either way.'}
       </p>
     </div>
   );
