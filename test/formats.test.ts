@@ -106,6 +106,15 @@ describe.each(FORMATS.map((f) => [f.id, f] as const))('%s', (id, format) => {
     for (const s of format.sections) expect(system).toContain(s.id);
     expect(system).toContain('Invent nothing');
     expect(system).toContain('reconcile');
+    // The hints ARE the product (CLAUDE.md: the care goes in the hints). Every
+    // one has to reach the prompt, or a rule somebody wrote after reading a bad
+    // document is silently doing nothing.
+    for (const s of format.sections) {
+      if (s.hint) expect(system, `${id} lost the hint on ${s.id}`).toContain(s.hint);
+      for (const c of [...(s.columns ?? []), ...(s.fields ?? [])]) {
+        if (c.hint) expect(system, `${id} lost the hint on ${s.id}.${c.id}`).toContain(c.hint);
+      }
+    }
   });
 
   it('renders an empty document without dropping a section', async () => {
@@ -178,5 +187,38 @@ describe.each(FORMATS.map((f) => [f.id, f] as const))('%s', (id, format) => {
     const text = await slideText(format, doc);
     expect(text).toContain('A document');
     expect(text.join(' ')).not.toContain('A doubt');
+  });
+});
+
+/**
+ * Two hints that exist because a real document got them wrong, kept here so
+ * that deleting them fails rather than quietly changing what Virtus writes.
+ *
+ * The first test produced six risks, three of which were facts — an environment
+ * not updated, somebody on leave, work carried over — and wrote the ones that
+ * were real as the story of how they came up rather than as a heading.
+ */
+describe('what a risk is, and how it is written', () => {
+  const withRisks = FORMATS.filter((f) =>
+    f.sections.some((s) => s.kind === 'table' && s.columns?.some((c) => c.id === 'risk')),
+  );
+
+  it('is asked for on more than one format', () => {
+    expect(withRisks.length).toBeGreaterThan(1);
+  });
+
+  for (const format of withRisks) {
+    it(`${format.id} says a fact is not a risk, and asks for a heading`, () => {
+      const system = systemFor(format);
+      expect(system).toContain('would cost something');
+      expect(system).toContain('A fact is not a risk');
+      expect(system).toContain('not the sentence from the note');
+    });
+  }
+
+  it('tells every format that one fact goes in one section', () => {
+    for (const format of FORMATS) {
+      expect(systemFor(format), format.id).toContain('goes in ONE section');
+    }
   });
 });
