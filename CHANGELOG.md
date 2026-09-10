@@ -3,6 +3,29 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.15.0 — Something to show somebody
+
+Virtus now has three things a person outside the team can look at without an
+account.
+
+- **A public page at `/about`.** One self-contained file — every image inlined,
+  no external requests — so it renders with no network and can be emailed as an
+  attachment to somebody who will not click a link. It is written as a case
+  rather than an advertisement: what problem it removes, what it costs to run,
+  and what leaves the building. That last one is a table, and it is the most
+  useful block on the page.
+- **A one-minute video.** Built as a web page and screen-recorded, so it is a
+  real render of the real application rather than a re-creation. Silent, so it
+  can play in a room where somebody is talking over it.
+- **A README** that can be read in four minutes or skimmed in thirty seconds.
+
+Every picture in all three is the real application. Nothing is a mock-up, and
+the page links the actual `.pptx`, `.docx` and `.pdf` a real note produced — not
+pictures of them.
+
+`/about` and `/media/` are now outside the passcode gate, and nothing else is.
+`docs/kit.md` is the recipe, including the six traps this run actually hit.
+
 ## 0.14.1 — What counts as a risk, and how it is written
 
 Three things the first real status report got wrong. All of them are hints, not
