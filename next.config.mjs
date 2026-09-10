@@ -15,6 +15,12 @@ const { version, name, notes } = release();
 
 /** @type {import('next').NextConfig} */
 const config = {
+  // The public page is a static file, served at a clean URL. It is one file with
+  // everything inlined (docs/build_site.py) so it renders with no network and can
+  // be emailed as an attachment to somebody who will not click a link.
+  async rewrites() {
+    return [{ source: '/about', destination: '/about.html' }];
+  },
   env: {
     NEXT_PUBLIC_VIRTUS_VERSION: version,
     NEXT_PUBLIC_VIRTUS_RELEASE: name,
