@@ -140,10 +140,19 @@ select {
 /* ---------------------------------------------------------------------------
    The broadcast strip.
 
-   The track holds the messages twice and slides exactly half its own width, so
-   the second copy arrives where the first began and the loop has no seam. The
-   duration comes from the component, because it is derived from how much there
-   is to read.
+   The track holds the messages as many times over as it takes to fill the
+   window, and slides exactly ONE copy's width before repeating — so the first
+   message follows the last by a single separator and the loop has no blank in
+   it. Both numbers are measured in the component and arrive as --vm-span and
+   --vm-lap, because both depend on the text, on the font once it has loaded,
+   and on how wide the screen is.
+
+   The first version translated -50% of a track holding two runs and a gap.
+   That is half a gap short of a seam every lap, and worse: each run was padded
+   out to the width of the screen, so a strip whose messages were narrower than
+   the monitor scrolled itself empty and then sat blank waiting for the loop.
+   A marquee with a blank in it does not read as a loop — it reads as the last
+   notice having ended.
 
    `overflow: hidden` on the window is load-bearing, not tidiness: the track is
    `width: max-content` and six notices are far wider than a phone. Without it
@@ -155,7 +164,7 @@ select {
 
 @keyframes virtus-marquee {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to { transform: translateX(calc(-1 * var(--vm-span, 0px))); }
 }
 
 .vm-track {

@@ -210,6 +210,27 @@ describe('the internal note never leaves the admin screen', () => {
     expect(html).toContain('bg-red-50');
   });
 
+  it('says each message once, however many copies the loop needs', () => {
+    // The strip repeats the run as many times as it takes to fill the screen.
+    // Exactly one copy may be announced: a screen reader reading the same six
+    // notices four times over is worse than no marquee at all.
+    const html = renderToStaticMarkup(
+      <BroadcastStrip items={[make({ id: 'a', text: 'Change freeze from Friday' })]} />,
+    );
+    // Matched on the <ul> specifically: the tone icons carry aria-hidden too,
+    // and a looser pattern counts those instead — which is a test that passes
+    // while measuring the wrong thing.
+    const runs = html.match(/<ul class="vm-run[^"]*"/g) ?? [];
+    const hidden = html.match(/<ul class="vm-run[^"]*" aria-hidden="true"/g) ?? [];
+
+    expect(runs.length).toBeGreaterThan(1);
+    expect(hidden).toHaveLength(runs.length - 1);
+
+    // Paired: exactly one run is left for a screen reader to read, so the line
+    // above is about which copies are hidden and not about all of them being.
+    expect(runs.length - hidden.length).toBe(1);
+  });
+
   it('is nothing at all when there is nothing to say', () => {
     expect(renderToStaticMarkup(<BroadcastStrip items={[]} />)).toBe('');
   });

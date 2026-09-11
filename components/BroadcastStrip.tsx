@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { mostSevere, type Broadcast, type Tone } from '@/lib/admin/broadcast';
 
 /**
@@ -23,6 +23,13 @@ import { mostSevere, type Broadcast, type Tone } from '@/lib/admin/broadcast';
  * - **It can be stopped.** Moving text somebody cannot pause is a barrier, not a
  *   flourish — and the one message a person most needs to re-read is the one
  *   that just went past. It pauses on hover, on keyboard focus, and on a button.
+ * - **It never waits.** The first message follows the last by one separator and
+ *   nothing else. That is why the run is measured rather than sized in percent:
+ *   the first version stretched each run to the width of the screen and
+ *   translated half the track, so a strip whose messages were narrower than the
+ *   monitor scrolled itself empty and then sat blank until the loop came round.
+ *   A marquee with a blank in it does not read as a loop — it reads as the last
+ *   thing having ended.
  * - **Reduced motion gets the messages, not a stump.** The animation is turned
  *   off in CSS and the same list wraps in place, so every message is still
  *   there. Switching off the movement must never be the thing that hides item
@@ -69,20 +76,30 @@ function Icon({ tone }: { tone: Tone }) {
 }
 
 /**
- * How long one lap takes. Derived from the text, not fixed: a fixed duration
- * makes one long message crawl and six short ones blur. Roughly 58px a second,
- * which is a comfortable read, and never under twelve seconds so a single short
- * notice does not flick past.
+ * How fast it reads, in pixels a second. One constant rather than a duration:
+ * the eye tracks a speed, not a lap time, so the same number has to hold whether
+ * the strip is carrying one notice or six. Derive the duration from the distance
+ * and the loop stays even as messages are added and removed.
  */
-function lapSeconds(items: Broadcast[]): number {
-  const chars = items.reduce((n, b) => n + b.text.trim().length, 0);
-  return Math.max(12, Math.round((chars * 6.4 + items.length * 72) / 58));
-}
+const SPEED = 56;
 
-function Run({ items, hidden }: { items: Broadcast[]; hidden?: boolean }) {
+const Run = ({
+  items,
+  hidden,
+  innerRef,
+}: {
+  items: Broadcast[];
+  hidden?: boolean;
+  innerRef?: React.Ref<HTMLUListElement>;
+}) => {
   return (
     <ul
-      className="vm-run flex min-w-full shrink-0 list-none items-center gap-x-8 gap-y-1"
+      ref={innerRef}
+      // `pr-8` is the separator, and it belongs INSIDE the run rather than as a
+      // gap on the track: the run's own width is what the animation travels, so
+      // the space before the next copy has to be part of that measurement or the
+      // loop lands short by half a gap every lap.
+      className="vm-run flex shrink-0 list-none items-center gap-x-8 gap-y-1 pr-8"
       aria-hidden={hidden || undefined}
     >
       {items.map((b) => (
@@ -93,10 +110,49 @@ function Run({ items, hidden }: { items: Broadcast[]; hidden?: boolean }) {
       ))}
     </ul>
   );
-}
+};
 
 export function BroadcastStrip({ items, inset = false }: { items: Broadcast[]; inset?: boolean }) {
   const [paused, setPaused] = useState(false);
+  const runRef = useRef<HTMLUListElement>(null);
+  const windowRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * One run's width, and how many copies it takes to keep the window full.
+   *
+   * Both are measured rather than assumed, because both depend on things this
+   * component cannot know: the text, the font once it has loaded, and how wide
+   * the screen is. Translating by a percentage instead was the bug — six notices
+   * on a phone and three on a monitor need different distances, and getting it
+   * wrong shows up as the strip going blank and waiting, which reads as the
+   * broadcast having ended rather than as a loop.
+   */
+  const [span, setSpan] = useState(0);
+  const [copies, setCopies] = useState(2);
+
+  useEffect(() => {
+    const measure = () => {
+      const run = runRef.current;
+      const frame = windowRef.current;
+      if (!run || !frame) return;
+      const width = run.getBoundingClientRect().width;
+      if (!width) return;
+      setSpan(width);
+      // Enough copies that one run's worth of travel never exposes the end of
+      // the last one. Two is the minimum; a narrow message on a wide screen
+      // needs more, which is exactly the case that used to sit blank.
+      // Capped: a pathologically short message on a wide screen should repeat,
+      // not fill the DOM with hundreds of copies of one word.
+      setCopies(Math.min(30, Math.max(2, Math.ceil(frame.getBoundingClientRect().width / width) + 1)));
+    };
+
+    measure();
+    const watch = new ResizeObserver(measure);
+    if (runRef.current) watch.observe(runRef.current);
+    if (windowRef.current) watch.observe(windowRef.current);
+    return () => watch.disconnect();
+  }, [items]);
+
   if (items.length === 0) return null;
 
   const tone = mostSevere(items);
@@ -112,21 +168,34 @@ export function BroadcastStrip({ items, inset = false }: { items: Broadcast[]; i
           inset ? 'px-3 py-2' : 'mx-auto w-full max-w-6xl px-4 py-2 sm:px-6'
         }`}
       >
-        <div className="vm-window min-w-0 flex-1 overflow-hidden text-[12.5px] leading-relaxed">
+        <div
+          ref={windowRef}
+          className="vm-window min-w-0 flex-1 overflow-hidden text-[12.5px] leading-relaxed"
+        >
           <div
-            className="vm-track flex w-max items-center gap-x-8"
+            className="vm-track flex w-max items-center"
             style={
               {
-                '--vm-lap': `${lapSeconds(items)}s`,
+                '--vm-span': `${span}px`,
+                // Distance over speed, with no floor. A floor would make a
+                // short notice crawl and a long one run, which is the thing a
+                // constant speed exists to prevent — it repeats sooner, it does
+                // not travel slower.
+                '--vm-lap': `${span / SPEED}s`,
+                // Nothing moves until the run has been measured. A lap of zero
+                // distance is not a still strip, it is a strip that stutters.
+                animationName: span > 0 ? undefined : 'none',
                 animationPlayState: paused ? 'paused' : undefined,
               } as CSSProperties
             }
           >
-            <Run items={items} />
-            {/* The second copy is what makes the loop seamless. It is announced
-                to nobody: a screen reader reading every notice twice is worse
+            <Run items={items} innerRef={runRef} />
+            {/* Every copy after the first is announced to nobody: a screen
+                reader reading the same six notices four times over is worse
                 than no marquee at all. */}
-            <Run items={items} hidden />
+            {Array.from({ length: copies - 1 }, (_, i) => (
+              <Run key={i} items={items} hidden />
+            ))}
           </div>
         </div>
 

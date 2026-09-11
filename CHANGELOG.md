@@ -3,6 +3,32 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.16.1 — The marquee stops waiting
+
+The strip scrolled its messages off and then sat blank until the loop came
+round. It read as the broadcast having ended rather than as a loop, which is
+the one thing a marquee must never do.
+
+Two faults, both mine:
+
+- **Each copy of the messages was padded out to the width of the screen.** So a
+  strip whose notices were narrower than the monitor scrolled itself empty and
+  then waited. The wider the screen, the longer the wait.
+- **The track slid half its own width.** With two copies and a separator between
+  them, half the track is half a separator short of where the second copy
+  begins — a small jump every lap, on top of the blank.
+
+Both are gone. One copy's width is measured in the browser, the animation
+travels exactly that, and the separator lives inside the copy so it is part of
+the measurement. The run is then repeated as many times as it takes to fill the
+window, so the first message follows the last by one separator at any screen
+width. Measured: the largest gap anywhere on the track is 32px — one separator —
+for one notice or six, at 1600px and at 390px.
+
+The speed is now constant at 56px a second rather than a lap time. A short
+notice repeats sooner; it does not travel slower. Only the first copy is
+announced to a screen reader, however many the loop needs.
+
 ## 0.16.0 — Six things at once, and each one ends by itself
 
 The broadcast was one message with a switch. That is the wrong shape for what a
