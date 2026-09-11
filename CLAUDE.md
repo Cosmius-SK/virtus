@@ -112,6 +112,15 @@ does. Someone types a message and presses the obvious button. Drive a change
 from an empty screen, in the order a person meets it, and only then from the
 states you had in mind.
 
+**Motion that cannot be switched off, or that hides things when it is.** The
+broadcast strip scrolls. Two rules came with it and both are load-bearing: it
+pauses (on hover, on focus, and on a button), and `prefers-reduced-motion` must
+switch the animation off *and* change the layout. Stopping a `max-content` track
+leaves everything after the first item outside the window — motion switched off
+becoming the thing that hides notice six is the worst version of this, because
+it lands on the people most likely to need to read it. Measured at 390px: one of
+four visible before the fix.
+
 **A confirmation that does not read the state it confirms will eventually lie.**
 "Saved. It is at the top of the page." was a constant string; the record said
 `on: false`. A sentence about what happened is derived from what happened, or it
@@ -170,7 +179,7 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `lib/brand.ts` | **Virtus's own** palette — what the product itself looks like. Never the same thing as the line above, and never merged with it. |
 | `components/Logo.tsx`, `app/icon.svg` | The mark. One path, shared by both, so the tab and the header cannot diverge. |
 | `components/Shell.tsx` | Header, navigation and the classification line. Every page is inside it. |
-| `components/BroadcastStrip.tsx`, `lib/admin/banner.ts` | The one strip, drawn identically by the frame and by the admin preview, and the one predicate deciding whether it shows. A preview that is a second implementation is one that can disagree with the product. |
+| `components/BroadcastStrip.tsx`, `lib/admin/broadcast.ts` | The one strip, drawn identically by the frame and by the admin preview, and the list it reads. Up to six messages, in the order they were added, each with its own dates. Whether one is showing is **derived** — from the switch, the text and today — never stored, because a stored flag drifts from the dates the first time a day passes with nobody looking. The internal note has no prop here: it is admin-only, and a strip that could render it eventually would. |
 | `components/TemplatePreview.tsx` | A template's preview, drawn from its own sections. Never a screenshot — a screenshot is wrong the first time a section moves. |
 | `lib/ai/provider.ts` | The only place that knows the provider, endpoint, key and model. |
 | `lib/org/` | What the organisation knows about itself (§3). |
@@ -213,9 +222,12 @@ still opens, it is just wrong, and it has already been sent.
   palette that did not come from `master.ts`. Both fail silently — a malformed
   template still produces a file and an unapplied house style still produces a
   file — so every assertion there is paired.
-- `test/banner.test.ts` covers the one sentence the admin space says about
-  what it just did. It is there because that sentence was once a constant and
-  was therefore sometimes false.
+- `test/broadcast.test.tsx` covers the broadcast list: the sentence the admin
+  space says about what it just did (once a constant, and therefore sometimes
+  false), which message shows on which day, and the internal note. That last one
+  renders the strip to markup, because a prop nobody passes today is a prop
+  somebody passes tomorrow. It is the only test here that renders React, which
+  is why `vitest.config.mts` sets the JSX runtime the tsconfig leaves to Next.
 - `test/org.test.ts`, `test/friendly.test.ts`, `test/pricing.test.ts`,
   `test/gate.test.ts` cover their own small rules.
 

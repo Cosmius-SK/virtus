@@ -1,6 +1,7 @@
 'use client';
 
 import Dexie, { type Table } from 'dexie';
+import type { Broadcast } from './admin/broadcast';
 import type { FormatDef, FormatDoc } from './formats/types';
 import type { House } from './house';
 import type { Run } from './meter';
@@ -115,9 +116,19 @@ export interface CustomTemplate extends Owned {
 export interface Settings extends Owned {
   id: 'settings';
   /**
-   * The broadcast strip. Operational and temporary — a trial, an outage, a
+   * The broadcast strip: up to six messages, shown in the order they were added,
+   * each with its own dates. Operational and temporary — a trial, an outage, a
    * freeze. Deliberately NOT the classification line, which is a control set by
    * whoever deployed this and must not be editable by whoever is using it.
+   */
+  broadcasts?: Broadcast[];
+  /**
+   * The single banner this replaced. Kept, not migrated: a device that already
+   * holds one is read through `broadcastsOf`, which folds it into the list, and
+   * the first save writes the new shape. Deleting the field would throw away a
+   * notice somebody put up and still expects to see.
+   *
+   * @deprecated Read `broadcasts` via `lib/admin/broadcast.ts`.
    */
   banner?: { on: boolean; text: string; tone: 'info' | 'warn' | 'alert' };
   /** A house style read out of an uploaded deck. See lib/house.ts. */
