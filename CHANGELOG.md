@@ -3,6 +3,44 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.16.0 — Six things at once, and each one ends by itself
+
+The broadcast was one message with a switch. That is the wrong shape for what a
+firm is actually announcing on any given Tuesday: a trial run, a change freeze
+and a storage incident can all be true, and an admin who can hold only one of
+them deletes the one that still matters to post the one that just happened.
+
+- **Up to six messages, scrolling past in the order they were added.** They
+  share one strip, so six notices cost the same vertical space as one. The strip
+  takes the colour of the most serious thing in it, and every message carries
+  its own icon — a notice, a warning and an urgent one are told apart at a
+  glance rather than by reading all three.
+- **Each one has a first and last day, and ends on its own.** The failure of a
+  broadcast is not that it never appears, it is that it never leaves: a strip
+  still announcing last month's freeze teaches everyone to stop reading the
+  strip, and then the outage notice lands on a bar nobody looks at. Dates are
+  inclusive days, and the end date beats a switch somebody forgot — the date is
+  what the admin set deliberately.
+- **An internal note on each.** Who asked for it, and what ends it. It is for
+  the admin screen and it is never rendered in the strip; the test that proves
+  that renders the strip to markup and then renders the same sentence *as* the
+  message, so its absence is the note being withheld rather than the assertion
+  being blind to the string.
+- **Ended messages are archived, not deleted.** The last six are kept, mostly
+  for the note — the only record of why something was up.
+
+It scrolls, so two things came with it. It pauses, on hover, on keyboard focus
+and on a button, because the notice somebody most wants to re-read is the one
+that just went past. And under `prefers-reduced-motion` the animation stops
+*and* the messages wrap into a list: stopping the track on its own leaves
+everything after the first notice outside the window, which would make switching
+off motion the thing that hides notice six. Measured at 390px, one of four was
+visible before that was fixed.
+
+A device still holding the single banner keeps it: it is folded into the list on
+read rather than migrated, so nothing has to be rewritten before it can be seen,
+and the first save writes the new shape.
+
 ## 0.15.1 — The broadcast that said it was up
 
 A message typed into the admin broadcast panel and saved did not appear, and

@@ -136,3 +136,94 @@ select {
     display: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The broadcast strip.
+
+   The track holds the messages twice and slides exactly half its own width, so
+   the second copy arrives where the first began and the loop has no seam. The
+   duration comes from the component, because it is derived from how much there
+   is to read.
+
+   `overflow: hidden` on the window is load-bearing, not tidiness: the track is
+   `width: max-content` and six notices are far wider than a phone. Without it
+   the document would be wider than the viewport, and on this layout that does
+   not look like one wide element — it looks like the mobile layout was never
+   written, because every breakpoint below is then measured against the stretched
+   viewport and none of them fire.
+   --------------------------------------------------------------------------- */
+
+@keyframes virtus-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.vm-track {
+  animation: virtus-marquee var(--vm-lap, 20s) linear infinite;
+}
+
+/* The messages have to be cut off at the edges — that is what a marquee is —
+   but a word sliced mid-letter against the pause control reads as a layout
+   fault rather than as text still arriving. Fading both edges says the same
+   thing the clip does, on purpose. */
+.vm-window {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 18px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 18px),
+    transparent 100%
+  );
+}
+
+/* Pausing is not a nicety. The notice somebody most wants to re-read is the one
+   that has just gone past, and moving text that cannot be stopped is a barrier
+   to anybody who reads slowly. Hover and keyboard focus stop it too. */
+.vm-window:hover .vm-track,
+.vm-window:focus-within .vm-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Every message still has to be readable. Stopping the animation on a
+     `max-content` track would leave the later ones outside the window — motion
+     switched off must never be the thing that hides notice six. So the track
+     becomes an ordinary wrapping row and the duplicate copy goes. */
+  .vm-track {
+    animation: none;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  /* The run is `shrink-0` so the two copies stay the same width and the loop
+     has no seam. With the animation off that is exactly wrong: it holds the row
+     at its content width and everything past the first notice sits outside the
+     window, unreachable, on the one setting chosen by people most likely to
+     need to read it. Measured at 390px: one of four visible before this. */
+  .vm-run {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .vm-run li {
+    white-space: normal;
+  }
+  .vm-run[aria-hidden='true'] {
+    display: none;
+  }
+  .vm-hold {
+    display: none;
+  }
+  /* Nothing is clipped once it wraps, so fading the edges would only dim the
+     first and last words of a notice somebody has to read. */
+  .vm-window {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

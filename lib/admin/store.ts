@@ -93,14 +93,18 @@ export async function refreshSettings(tell = true): Promise<void> {
   if (tell && channel) channel.postMessage('changed');
 }
 
-export async function setSettings(part: Partial<Pick<Settings, 'banner' | 'house'>>) {
+export async function setSettings(part: Partial<Pick<Settings, 'broadcasts' | 'house'>>) {
   const now = Date.now();
   const existing = await settings();
   await db.settings.put({
     id: 'settings',
     ownerId: ownerId(),
-    banner: existing?.banner,
+    broadcasts: existing?.broadcasts,
     house: existing?.house,
+    // The single-banner record is carried, not dropped. `broadcastsOf` folds it
+    // into the list on read; deleting it here would throw away a notice
+    // somebody put up on a device that has not saved since the change.
+    banner: existing?.banner,
     ...part,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,

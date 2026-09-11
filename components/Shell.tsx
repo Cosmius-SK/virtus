@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Mark } from './Logo';
 import { BroadcastStrip } from './BroadcastStrip';
-import { isShowing } from '@/lib/admin/banner';
+import { broadcastsOf, live } from '@/lib/admin/broadcast';
 import { useSettings } from '@/lib/admin/use';
 
 /**
@@ -55,7 +55,7 @@ export function Shell({
   const path = usePathname();
   const { settings } = useSettings();
   const [open, setOpen] = useState(false);
-  const banner = settings?.banner;
+  const showing = live(broadcastsOf(settings));
 
   // Following a link inside the panel must close it. Keyed on the path rather
   // than the click, so the browser's own back button closes it too.
@@ -140,7 +140,7 @@ export function Shell({
         </div>
       )}
 
-      {isShowing(banner) && <BroadcastStrip banner={banner} />}
+      {showing.length > 0 && <BroadcastStrip items={showing} />}
 
       <main className="flex-1">{children}</main>
 

@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { TemplateBuilder, blankTemplate } from '@/components/admin/TemplateBuilder';
 import { TemplatePreview } from '@/components/TemplatePreview';
 import { allTemplates, removeTemplate, saveTemplate, setSettings } from '@/lib/admin/store';
-import { BroadcastStrip } from '@/components/BroadcastStrip';
-import { EMPTY, TONES, isShowing, savedMessage, type Banner } from '@/lib/admin/banner';
+import { BroadcastPanel } from '@/components/admin/BroadcastPanel';
 import { useSettings } from '@/lib/admin/use';
 import type { CustomTemplate } from '@/lib/db';
 import { FormatDefSchema } from '@/lib/formats/def-schema';
@@ -68,7 +67,7 @@ export default function Admin() {
 
       <div className="mt-6">
         {tab === 'templates' && <Templates />}
-        {tab === 'broadcast' && <Broadcast />}
+        {tab === 'broadcast' && <BroadcastPanel />}
         {tab === 'house' && <HouseStyle />}
         {tab === 'organisation' && <Organisation />}
       </div>
@@ -253,146 +252,6 @@ function download(def: FormatDef) {
  * one of them, and a confirmation that does not read the state it is confirming
  * will eventually lie.
  */
-function Broadcast() {
-  const { settings, reload } = useSettings();
-  const [draft, setDraft] = useState<Banner>(EMPTY);
-  const [loaded, setLoaded] = useState(false);
-  const [said, setSaid] = useState<string | null>(null);
-  const live = settings?.banner;
-
-  useEffect(() => {
-    if (settings !== undefined && !loaded) {
-      setDraft(settings.banner ?? EMPTY);
-      setLoaded(true);
-    }
-  }, [settings, loaded]);
-
-  const edit = (part: Partial<Banner>) => {
-    setDraft((d) => ({ ...d, ...part }));
-    setSaid(null);
-  };
-
-  async function commit(on: boolean) {
-    const next = { ...draft, on };
-    setDraft(next);
-    await setSettings({ banner: next });
-    setSaid(savedMessage(next));
-    reload();
-  }
-
-  const empty = !draft.text.trim();
-
-  return (
-    <div className="max-w-2xl">
-      <p className="text-[13px] leading-relaxed text-ink60">
-        A strip across the top of every screen. For things that are true right now and will not be
-        true forever — a trial, an outage, a change freeze.
-      </p>
-      <p className="mt-2 rounded border border-line bg-lineSoft px-3 py-2 text-[12px] leading-relaxed text-ink60">
-        This is not the classification line. That one says what may be entered into this deployment,
-        it is set by whoever deployed it, and it deliberately cannot be edited here — a control the
-        people bound by it can switch off is not a control.
-      </p>
-
-      <label className="mt-5 block">
-        <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
-          Message
-        </span>
-        <textarea
-          value={draft.text}
-          rows={2}
-          onChange={(e) => edit({ text: e.target.value })}
-          placeholder="Trial run — do not enter confidential data."
-          className="mt-1.5 w-full resize-y rounded border border-line px-3 py-2 text-[13px] leading-relaxed text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
-        />
-      </label>
-
-      <div className="mt-3">
-        <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
-          How it should read
-        </span>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {TONES.map((tone) => (
-            <button
-              key={tone.id}
-              type="button"
-              onClick={() => edit({ tone: tone.id })}
-              className={`rounded border px-2.5 py-1 text-xs transition ${
-                draft.tone === tone.id
-                  ? 'border-accent bg-accent text-white'
-                  : 'border-line text-ink60 hover:border-accent'
-              }`}
-            >
-              {tone.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* The real strip, not something like it. */}
-      <div className="mt-5">
-        <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
-          What people will see
-        </span>
-        <div className="mt-1.5">
-          {empty ? (
-            <p className="rounded border border-dashed border-line px-3 py-2.5 text-[12.5px] text-ink40">
-              Nothing yet — write a message above.
-            </p>
-          ) : (
-            <BroadcastStrip banner={draft} inset />
-          )}
-        </div>
-      </div>
-
-      {/* The buttons say what pressing them does. There is no flag to find. */}
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        {isShowing(live) ? (
-          <>
-            <button
-              type="button"
-              disabled={empty}
-              onClick={() => void commit(true)}
-              className="rounded bg-accent px-4 py-2 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:opacity-40"
-            >
-              Save changes
-            </button>
-            <button
-              type="button"
-              onClick={() => void commit(false)}
-              className="text-[13px] text-ink60 transition hover:text-red-700"
-            >
-              Stop showing it
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              disabled={empty}
-              onClick={() => void commit(true)}
-              className="rounded bg-accent px-4 py-2 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:opacity-40"
-            >
-              Show this banner
-            </button>
-            <button
-              type="button"
-              disabled={empty}
-              onClick={() => void commit(false)}
-              className="text-[13px] text-ink60 transition hover:text-ink disabled:opacity-40"
-            >
-              Save without showing
-            </button>
-          </>
-        )}
-      </div>
-
-      {said && <p className="mt-3 text-[12px] text-ink60">{said}</p>}
-    </div>
-  );
-}
-
-
 function HouseStyle() {
   const { settings, reload } = useSettings();
   const [busy, setBusy] = useState(false);
