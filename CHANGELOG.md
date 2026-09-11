@@ -3,6 +3,23 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.17.1 — The shared store is private
+
+The Blob driver asked for public blobs, and public means reachable by anybody
+holding the URL — no token, no gate. What it holds is the organisation model:
+real names of real people at a real firm, and what each of them does. The
+product's own page has a table headed "what leaves the building". Putting the
+firm's staff list at an unauthenticated URL would have made that table a lie.
+
+Reads also stopped listing the store to find one file whose name is a constant.
+`list` is charged as an advanced operation; `get` by pathname is not, and it
+returns nothing rather than an empty listing when the document has never been
+written.
+
+`.env.example` now says which options to choose when creating the store,
+including the one that is easy to miss: without the read-write token tick,
+no variable is created and the app quietly stays per-device.
+
 ## 0.17.0 — What the firm sets, the firm sees
 
 Admin was per-device, and that was never a decision anybody would defend — it

@@ -27,38 +27,46 @@ export interface SharedStore {
 const PATH = 'virtus/shared.json';
 
 /**
- * Vercel Blob.
+ * Vercel Blob, private.
+ *
+ * Private rather than public, and that is not a default worth taking lightly:
+ * this document holds the organisation model, which is the real names of real
+ * people at a real firm along with what they do. A public blob is reachable by
+ * anybody holding its URL, with no token and no gate — the same URL that would
+ * sit in a browser history, a proxy log or a screenshot. The product's own page
+ * has a table headed "what leaves the building"; putting the firm's staff list
+ * at an unauthenticated URL would make that table a lie.
  *
  * Chosen for size: the whole document is about 11KB — six broadcasts, a house
  * style, forty organisation entries — and a few kilobytes more per template
  * built in Admin. Storage is not the cost here; reads are, because Vercel
- * counts a fetch that misses cache. So the route in front of this caches, and
- * a hundred people opening screens costs what one does.
+ * counts a fetch that misses cache. So the route in front of this holds the
+ * document briefly, and a hundred people opening screens costs what one does.
  */
 function blobStore(token: string): SharedStore {
   return {
     where: 'Vercel Blob',
 
     async read() {
-      const { list } = await import('@vercel/blob');
-      const found = await list({ prefix: PATH, limit: 1, token });
-      const hit = found.blobs.find((b) => b.pathname === PATH);
-      if (!hit) return EMPTY_DOC;
-      // `cache: 'no-store'` on purpose: the caching belongs to the route, which
-      // knows when a write has just happened. Caching here as well would mean
-      // an admin pressing save and being shown what was there before.
-      const res = await fetch(hit.url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Shared settings could not be read (${res.status}).`);
-      return cleanDoc(await res.json());
+      const { get } = await import('@vercel/blob');
+      // By pathname rather than listing first: `list` is charged as an advanced
+      // operation and a listing is not needed to read a document whose name is
+      // a constant. `useCache: false` because an admin who has just pressed
+      // save must be shown what they saved — the caching that matters belongs
+      // to the route, which knows when a write has happened, and a CDN that
+      // does not know cannot be allowed to answer for it.
+      const found = await get(PATH, { token, access: 'private', useCache: false });
+      if (!found?.stream) return EMPTY_DOC;
+      return cleanDoc(JSON.parse(await new Response(found.stream).text()));
     },
 
     async write(doc) {
       const { put } = await import('@vercel/blob');
       await put(PATH, JSON.stringify(doc), {
         token,
-        access: 'public',
+        access: 'private',
         contentType: 'application/json',
-        // One document, overwritten. Without this every save would leave a new
+        // One document, overwritten. Without these every save would leave a new
         // file behind and the store would grow without limit for no benefit —
         // the history that matters is in the changelog, not in orphaned blobs.
         addRandomSuffix: false,
