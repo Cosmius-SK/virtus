@@ -85,6 +85,13 @@ These come from the brief, and each one cost real time in biblio.
 13. **The changelog is the single source of release notes** (§8.7). Written
     before shipping, parsed at build time by `next.config.mjs`. There is no
     second copy — do not add one.
+14. **What the firm sets is shared; what a person writes is theirs.** Broadcasts,
+    the house style, the organisation model and templates built in Admin are
+    facts about the organisation and live in the shared store. Notes, drafts and
+    finished documents are somebody's own work and stay on the device (§4, §8.1).
+    Moving anything across that line needs the brief re-read, not a judgement
+    call: personal work reaching a shared store is the one failure here nobody
+    would forgive.
 
 ## How history should read
 
@@ -127,6 +134,14 @@ leaves everything after the first item outside the window — motion switched of
 becoming the thing that hides notice six is the worst version of this, because
 it lands on the people most likely to need to read it. Measured at 390px: one of
 four visible before the fix.
+
+**`useSyncExternalStore` demands a *cached* snapshot, and punishes you in the
+browser only.** A getter that builds a fresh object each call is never equal to
+what it returned last time, so React re-renders, calls it again, and the page
+dies with "maximum update depth exceeded". Typecheck, lint, all 292 tests and
+the production build were green while every screen was a blank error — the fault
+exists only once something subscribes. Any adapter that reshapes the shared
+document for an older caller caches against the document it came from.
 
 **A confirmation that does not read the state it confirms will eventually lie.**
 "Saved. It is at the top of the page." was a constant string; the record said
@@ -189,7 +204,11 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `components/BroadcastStrip.tsx`, `lib/admin/broadcast.ts` | The one strip, drawn identically by the frame and by the admin preview, and the list it reads. Up to six messages, in the order they were added, each with its own dates. Whether one is showing is **derived** — from the switch, the text and today — never stored, because a stored flag drifts from the dates the first time a day passes with nobody looking. The internal note has no prop here: it is admin-only, and a strip that could render it eventually would. |
 | `components/TemplatePreview.tsx` | A template's preview, drawn from its own sections. Never a screenshot — a screenshot is wrong the first time a section moves. |
 | `lib/ai/provider.ts` | The only place that knows the provider, endpoint, key and model. |
-| `lib/org/` | What the organisation knows about itself (§3). |
+| `lib/org/` | What the organisation knows about itself (§3). Shared, not per-device. |
+| `lib/shared/driver.ts` | **The only module that knows where shared data is kept.** Same shape and same reason as `lib/ai/provider.ts`. Two implementations on purpose — Vercel Blob, and a file on disk for driving the shared path locally — because an interface with one implementation is a hope. Not configured is a first-class answer: the app falls back to the device and says so. |
+| `lib/shared/doc.ts`, `lib/shared/client.ts` | The one document the firm shares, and the one subscribable copy of it. Everything read by a screen comes from here. |
+| `lib/admin/gate.ts` | The second passcode, for *changing* what everybody sees. Derived from the same HMAC as the app gate but never the same token — if they matched, everyone through the front door would silently be an admin. |
+| `lib/shared/say.ts` | What to say when a change did not happen. One sentence in one place, for the same reason `savedMessage` is one function in one place. |
 | `lib/meter.ts`, `lib/pricing.ts` | What a document cost, measured not estimated. |
 | `lib/friendly.ts` | Failures, said in a sentence. Nothing raw reaches the screen. |
 | `lib/gate.ts`, `middleware.ts` | The shared passcode. Unset means no gate. |
@@ -201,14 +220,18 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 
 ## Not built yet
 
-Sync between devices, company sign-in, sharing, and the MCP server (§7). The
+Company sign-in, sharing of finished documents, and the MCP server (§7). What
+the firm sets is now shared between devices; what a person writes is not, and
+that is the line in rule 14 rather than a gap. The
 endpoints were built to be called without a browser, so the plugin is a wrapper
 over calls that already exist rather than a second pipeline — keep it that way.
 
-Known and deliberate: the organisation model lives on the device and travels
-with each request. The brief asks for server-side (§7) and that is right once
-there is a second caller; until then a server store would be the largest thing
-in the codebase serving nobody. Moving it is a change of source, not of shape.
+That note used to continue: *"the organisation model lives on the device and
+travels with each request… moving it is a change of source, not of shape."* The
+second caller turned out to be the simplest possible one — somebody else opening
+the URL — and the promise was kept: `lib/org/store.ts` and `lib/admin/store.ts`
+changed where they read from and **not one of the nine call sites changed**. If
+a future move costs more than that, the driver has been bypassed somewhere.
 
 ## What is tested, and what deliberately is not
 
@@ -235,6 +258,10 @@ still opens, it is just wrong, and it has already been sent.
   renders the strip to markup, because a prop nobody passes today is a prop
   somebody passes tomorrow. It is the only test here that renders React, which
   is why `vitest.config.mts` sets the JSX runtime the tsconfig leaves to Next.
+- `test/shared.test.ts` covers the two things about the shared store that fail
+  silently: a gate that is open when it should be shut looks exactly like one
+  that is working, and a document read back in the wrong shape does not throw —
+  it reaches a renderer. It also asserts the admin token is never the app token.
 - `test/org.test.ts`, `test/friendly.test.ts`, `test/pricing.test.ts`,
   `test/gate.test.ts` cover their own small rules.
 

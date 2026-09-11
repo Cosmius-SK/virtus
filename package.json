@@ -1,6 +1,6 @@
 {
   "name": "virtus",
-  "version": "0.16.1",
+  "version": "0.17.0",
   "private": true,
   "engines": {
     "node": ">=22.0.0"
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
+    "@vercel/blob": "^2.8.0",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
     "docx": "^9.7.1",

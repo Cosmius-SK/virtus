@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SAMPLE_ORG } from '@/lib/org/sample';
 import { add, addMany, all, forget, update } from '@/lib/org/store';
+import { refusal } from '@/lib/shared/say';
 import { KINDS, type Entry, type EntryKind } from '@/lib/org/types';
 
 /**
@@ -18,6 +19,25 @@ export default function Organisation() {
   const [kind, setKind] = useState<EntryKind>('person');
   const [name, setName] = useState('');
   const [about, setAbout] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+
+  /**
+   * The organisation model is shared now, so a write can be refused — no admin
+   * code, or somebody editing at the same time. Every write on this screen goes
+   * through here so that a refusal is said rather than swallowed: an entry that
+   * silently fails to save is one that is missing from a document later, and
+   * nothing on the screen will have suggested it was.
+   */
+  async function writing(work: () => Promise<void>) {
+    try {
+      setProblem(null);
+      await work();
+    } catch (err) {
+      setProblem(refusal(err));
+    } finally {
+      load();
+    }
+  }
 
   const load = useCallback(() => {
     void all().then(setEntries);
@@ -27,10 +47,11 @@ export default function Organisation() {
   async function create(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    await add(kind, name, about);
-    setName('');
-    setAbout('');
-    load();
+    await writing(async () => {
+      await add(kind, name, about);
+      setName('');
+      setAbout('');
+    });
   }
 
   return (
@@ -42,6 +63,8 @@ export default function Organisation() {
         already yours.
       </p>
 
+      {problem && <p className="mt-4 text-[12px] text-red-700">{problem}</p>}
+
       {entries?.length === 0 && (
         <div className="mt-6 rounded-lg border border-dashed border-line px-4 py-8 text-center">
           <p className="text-sm text-ink60">
@@ -51,8 +74,7 @@ export default function Organisation() {
           <button
             type="button"
             onClick={async () => {
-              await addMany(SAMPLE_ORG);
-              load();
+              await writing(() => addMany(SAMPLE_ORG));
             }}
             className="mt-3 rounded border border-line bg-paper px-3.5 py-1.5 text-[12px] font-medium text-ink transition hover:border-accent hover:text-accent"
           >
@@ -100,15 +122,14 @@ export default function Organisation() {
                           rows!.map((r) => (r.id === entry.id ? { ...r, about: e.target.value } : r)),
                         );
                       }}
-                      onBlur={(e) => void update(entry.id, { about: e.target.value })}
+                      onBlur={(e) => void writing(() => update(entry.id, { about: e.target.value }))}
                       className="min-w-0 flex-1 bg-transparent text-sm text-ink80 outline-none"
                     />
                     <button
                       type="button"
                       aria-label="Remove"
                       onClick={async () => {
-                        await forget(entry.id);
-                        load();
+                        await writing(() => forget(entry.id));
                       }}
                       className="text-ink40 transition hover:text-ink"
                     >

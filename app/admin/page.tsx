@@ -6,12 +6,13 @@ import { TemplateBuilder, blankTemplate } from '@/components/admin/TemplateBuild
 import { TemplatePreview } from '@/components/TemplatePreview';
 import { allTemplates, removeTemplate, saveTemplate, setSettings } from '@/lib/admin/store';
 import { BroadcastPanel } from '@/components/admin/BroadcastPanel';
+import { WhereKept } from '@/components/admin/WhereKept';
+import { refusal } from '@/lib/shared/say';
 import { useSettings } from '@/lib/admin/use';
 import type { CustomTemplate } from '@/lib/db';
 import { FormatDefSchema } from '@/lib/formats/def-schema';
 import { FORMATS } from '@/lib/formats/registry';
 import type { FormatDef } from '@/lib/formats/types';
-import { friendly } from '@/lib/friendly';
 import type { House } from '@/lib/house';
 
 /**
@@ -21,11 +22,13 @@ import type { House } from '@/lib/house';
  * this stops being a demonstration: templates of its own, its own colours, a way
  * to say something to everyone using it, and the organisation model.
  *
- * All of it is on this device, and the screen says so rather than letting
- * somebody discover it. The 26 templates that ship are part of the application
- * and are on every device that opens the URL; a template built here is not.
- * That is a real limitation with a real end state (a shared store, §7), and the
- * export button is the stopgap that is honest about being one.
+ * Where all of it is kept depends on whether a shared store is configured, and
+ * `components/admin/WhereKept.tsx` says which — on the screen, because the
+ * question it answers is one somebody asks in the middle of a demo and the
+ * wrong answer is expensive. The prose here deliberately does not repeat it:
+ * two sentences about the same fact is one sentence that will go stale, and
+ * this page already carried a paragraph insisting everything stayed in this
+ * browser while the strip beneath it said the opposite.
  */
 type Tab = 'templates' | 'broadcast' | 'house' | 'organisation';
 
@@ -43,9 +46,9 @@ export default function Admin() {
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-9">
       <h1 className="text-[26px] font-semibold tracking-tight text-ink">Admin</h1>
       <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-ink60">
-        Templates, appearance and what everyone using this sees. Everything here is held on this
-        device — the templates that ship with Virtus are on every device; the ones built here stay
-        in this browser until there is a shared store.
+        What the firm sets for itself: templates it builds, the colours its documents come out in,
+        what everybody using Virtus is told, and what Virtus knows about its own people and
+        systems.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-1 border-b border-line">
@@ -66,6 +69,7 @@ export default function Admin() {
       </div>
 
       <div className="mt-6">
+        <WhereKept />
         {tab === 'templates' && <Templates />}
         {tab === 'broadcast' && <BroadcastPanel />}
         {tab === 'house' && <HouseStyle />}
@@ -90,10 +94,15 @@ function Templates() {
   async function save() {
     if (!editing) return;
     setSaving(true);
+    setProblem(null);
     try {
       await saveTemplate(editing.def, editing.id);
       setEditing(null);
       load();
+    } catch (err) {
+      // Templates are shared now, so this can be refused. A builder that closes
+      // on a failed save loses the work somebody just did.
+      setProblem(refusal(err));
     } finally {
       setSaving(false);
     }
@@ -123,7 +132,7 @@ function Templates() {
       await saveTemplate(parsed.data as FormatDef);
       load();
     } catch (err) {
-      setProblem(friendly(err).message);
+      setProblem(refusal(err));
     }
   }
 
@@ -211,7 +220,12 @@ function Templates() {
                 <button
                   type="button"
                   onClick={async () => {
-                    await removeTemplate(row.id);
+                    try {
+                      setProblem(null);
+                      await removeTemplate(row.id);
+                    } catch (err) {
+                      setProblem(refusal(err));
+                    }
                     load();
                   }}
                   className="ml-auto text-[12px] text-ink40 transition hover:text-red-700"
@@ -227,7 +241,7 @@ function Templates() {
   );
 }
 
-/** A template as a file, so it can reach a device this browser cannot. */
+/** A template as a file, so one can be handed to a deployment this one cannot reach. */
 function download(def: FormatDef) {
   const blob = new Blob([JSON.stringify(def, null, 2)], { type: 'application/json' });
   const href = URL.createObjectURL(blob);
@@ -274,7 +288,7 @@ function HouseStyle() {
       await setSettings({ house: body.house });
       reload();
     } catch (err) {
-      setProblem(friendly(err).message);
+      setProblem(refusal(err));
     } finally {
       setBusy(false);
     }

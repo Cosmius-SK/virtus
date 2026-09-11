@@ -1,113 +1,124 @@
 'use client';
 
-import { db, newId, type CustomTemplate, type Settings } from '@/lib/db';
-import type { FormatDef } from '@/lib/formats/types';
+import { newId, type CustomTemplate, type Settings } from '@/lib/db';
+import type { SharedDoc } from '@/lib/shared/doc';
 import { ownerId } from '@/lib/owner';
+import type { FormatDef } from '@/lib/formats/types';
+import {
+  refresh,
+  sharedLoaded,
+  sharedSnapshot,
+  subscribeShared,
+  update,
+} from '@/lib/shared/client';
 
 /**
- * The admin space's storage — on the device, like everything else here.
+ * The admin space's storage.
  *
- * Worth being plain about what that means, because it is the thing somebody
- * will ask in a demo: the 26 templates that ship are part of the application
- * and are on every device that opens the URL. A template built here is not. It
- * lives in this browser until there is a server store, which is why every
- * template can be exported and imported as a file — a stopgap that is honest
- * about being one, rather than a sync feature that half works.
+ * It used to say "on the device, like everything else here", and that was a
+ * limitation dressed as a decision. A broadcast is a statement to the whole
+ * firm; a house style is the firm's; the organisation model is what the firm
+ * knows about itself. None of those are facts about one laptop, and a demo
+ * where the leader opens the URL and sees an empty Admin proves the point
+ * faster than any argument — the second caller the notes were waiting for is
+ * simply somebody else's browser.
+ *
+ * What changed is the source, not the shape (§7). Every function below reads
+ * and writes the same `SharedDoc`; `lib/shared/client.ts` decides whether that
+ * document lives in the shared store or on this device, and the screens say
+ * which. Personal work — notes, drafts, finished documents — did not move and
+ * should not.
  */
+
+export { subscribeShared, sharedLoaded, sharedSnapshot } from '@/lib/shared/client';
+export { NotAllowed, Stale } from '@/lib/shared/client';
+
 export async function allTemplates(): Promise<CustomTemplate[]> {
-  const rows = await db.templates.where('ownerId').equals(ownerId()).toArray();
-  return rows.filter((t) => !t.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt);
+  if (!sharedLoaded()) await refresh(false);
+  return [...sharedSnapshot().doc.templates].sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function saveTemplate(def: FormatDef, existingId?: string): Promise<string> {
   const now = Date.now();
   const id = existingId ?? newId();
-  const existing = existingId ? await db.templates.get(existingId) : undefined;
-  await db.templates.put({
-    id,
-    ownerId: ownerId(),
-    def,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
+  await update((doc) => {
+    const was = doc.templates.find((t) => t.id === id);
+    const row: CustomTemplate = {
+      id,
+      ownerId: was?.ownerId ?? ownerId(),
+      def,
+      createdAt: was?.createdAt ?? now,
+      updatedAt: now,
+    };
+    return {
+      ...doc,
+      templates: was ? doc.templates.map((t) => (t.id === id ? row : t)) : [...doc.templates, row],
+    };
   });
   return id;
 }
 
-/** Tombstoned rather than dropped, so a deletion can travel when sync arrives. */
+/**
+ * Removed from the shared document rather than tombstoned in it.
+ *
+ * The tombstone existed so a deletion could travel when sync arrived. It has
+ * arrived: the document is the state, everybody reads the same one, and a row
+ * that is not in it is gone for everyone. Keeping tombstones here as well would
+ * mean carrying deleted templates in every read of a document whose whole
+ * virtue is being small. The device fallback still tombstones its own tables,
+ * because those are a cache of this and a removal has to be visible there.
+ */
 export async function removeTemplate(id: string): Promise<void> {
-  await db.templates.update(id, { deletedAt: Date.now(), updatedAt: Date.now() });
-}
-
-export async function settings(): Promise<Settings | undefined> {
-  const row = await db.settings.get('settings');
-  return row?.ownerId === ownerId() ? row : undefined;
+  await update((doc) => ({ ...doc, templates: doc.templates.filter((t) => t.id !== id) }));
 }
 
 /**
- * One copy of the settings, and everyone watching it.
- *
- * The broadcast strip is set on one screen and shown on another — the admin
- * panel and the header are two components that never meet. Each reading the
- * database into its own state meant saving updated the panel and left the
- * header showing what it had read on page load, so the banner only appeared
- * after a refresh. Reported, correctly, as "the broadcast does not display".
- *
- * A module-level snapshot with subscribers fixes it without a state library:
- * one read, one copy, everyone re-renders. `BroadcastChannel` extends the same
- * to other tabs, which for this feature in particular is the behaviour anyone
- * would assume — a notice everybody is meant to see should not wait for a
- * reload in the tab that is already open.
+ * The settings shape the screens already read. Derived from the shared document
+ * rather than stored: `Settings` is what a component wants, `SharedDoc` is what
+ * is kept, and making the screens learn the second one would have been a
+ * rewrite of nine files to gain nothing.
  */
-let snapshot: Settings | undefined;
-let loaded = false;
-const listeners = new Set<() => void>();
+let compatFor: SharedDoc | undefined;
+let compat: Settings | undefined;
 
-const channel =
-  typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('virtus-settings');
-if (channel) channel.onmessage = () => void refreshSettings(false);
+export function settingsSnapshotCompat(): Settings | undefined {
+  if (!sharedLoaded()) return undefined;
+  const { doc } = sharedSnapshot();
 
-function emit(): void {
-  for (const listener of listeners) listener();
+  // Cached against the document it was derived from, and this is not an
+  // optimisation. `useSyncExternalStore` compares what the getter returns with
+  // what it returned last time; a fresh object every call is never equal to
+  // itself, so React re-renders, calls the getter again, and the page dies with
+  // "maximum update depth exceeded". It does so only in the browser, and only
+  // once something actually subscribes — typecheck, lint, the whole test suite
+  // and the production build were all green while every screen was blank.
+  if (doc !== compatFor) {
+    compatFor = doc;
+    compat = {
+      id: 'settings',
+      ownerId: ownerId(),
+      broadcasts: doc.broadcasts,
+      house: doc.house,
+      createdAt: doc.updatedAt,
+      updatedAt: doc.updatedAt,
+    };
+  }
+  return compat;
 }
 
-export function subscribeSettings(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+export async function settings(): Promise<Settings | undefined> {
+  if (!sharedLoaded()) await refresh(false);
+  return settingsSnapshotCompat();
 }
 
-export function settingsSnapshot(): Settings | undefined {
-  return snapshot;
-}
-
-export function settingsLoaded(): boolean {
-  return loaded;
-}
-
-/** Re-read and tell everyone. `tell` is false when reacting to another tab. */
-export async function refreshSettings(tell = true): Promise<void> {
-  snapshot = await settings();
-  loaded = true;
-  emit();
-  if (tell && channel) channel.postMessage('changed');
-}
+export const refreshSettings = refresh;
+export const subscribeSettings = subscribeShared;
+export const settingsLoaded = sharedLoaded;
 
 export async function setSettings(part: Partial<Pick<Settings, 'broadcasts' | 'house'>>) {
-  const now = Date.now();
-  const existing = await settings();
-  await db.settings.put({
-    id: 'settings',
-    ownerId: ownerId(),
-    broadcasts: existing?.broadcasts,
-    house: existing?.house,
-    // The single-banner record is carried, not dropped. `broadcastsOf` folds it
-    // into the list on read; deleting it here would throw away a notice
-    // somebody put up on a device that has not saved since the change.
-    banner: existing?.banner,
-    ...part,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-  });
-  await refreshSettings();
+  await update((doc) => ({
+    ...doc,
+    broadcasts: part.broadcasts ?? doc.broadcasts,
+    house: 'house' in part ? part.house : doc.house,
+  }));
 }
