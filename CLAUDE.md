@@ -112,10 +112,17 @@ does. Someone types a message and presses the obvious button. Drive a change
 from an empty screen, in the order a person meets it, and only then from the
 states you had in mind.
 
-**Motion that cannot be switched off, or that hides things when it is.** The
-broadcast strip scrolls. Two rules came with it and both are load-bearing: it
-pauses (on hover, on focus, and on a button), and `prefers-reduced-motion` must
-switch the animation off *and* change the layout. Stopping a `max-content` track
+**Motion that cannot be switched off, hides things when it is, or waits.** The
+broadcast strip scrolls. Three rules came with it and each is load-bearing: it
+pauses (on hover, on focus, and on a button); `prefers-reduced-motion` must
+switch the animation off *and* change the layout; and the loop must never go
+blank. A marquee that empties the screen and waits does not read as a loop, it
+reads as the last notice having ended — so the distance travelled is **one
+measured copy**, never a percentage, the separator lives inside the copy so it
+is part of that measurement, and the copy repeats as many times as it takes to
+fill the window. Percentages fail here twice over: half of a two-copy track is
+half a separator short, and padding a copy to the screen width makes the wait
+longer the wider the monitor. Stopping a `max-content` track
 leaves everything after the first item outside the window — motion switched off
 becoming the thing that hides notice six is the worst version of this, because
 it lands on the people most likely to need to read it. Measured at 390px: one of
