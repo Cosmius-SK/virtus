@@ -3,6 +3,49 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.17.0 — What the firm sets, the firm sees
+
+Admin was per-device, and that was never a decision anybody would defend — it
+was what happened while there was no server to put things in. A broadcast is a
+statement to the whole firm. A house style is the firm's. The organisation model
+is what the firm knows about itself. None of those are facts about one laptop,
+and the demo where somebody else opens the URL and finds an empty Admin makes
+the point faster than any argument.
+
+**Shared from now on:** broadcasts, the house style, the organisation model, and
+templates built in Admin. **Still yours alone:** notes, drafts and finished
+documents. That line is now a rule in the working notes rather than an
+accident of where the code happened to write.
+
+- **One module knows where it is kept.** `lib/shared/driver.ts`, the same shape
+  and the same reasoning as `lib/ai/provider.ts`. It ships with two
+  implementations — Vercel Blob, and a file on disk for running the shared path
+  locally — because an interface with one implementation is a hope rather than a
+  fact. Changing store is changing that file.
+- **Not configured is a first-class answer.** With no store, the app keeps admin
+  data on the device exactly as before and the Admin screen says so in a
+  sentence. Nothing breaks before somebody creates a store, and nothing needs
+  changing when they do.
+- **A second passcode for changing what everybody sees.** `VIRTUS_ADMIN_PASSCODE`,
+  separate from the one that opens the app: "you were told the code to get in"
+  is the right size for reading and the wrong size for editing a strip on every
+  screen in the firm telling people what they may type into it. Everyone can
+  read Admin; changing it needs the code. Unset means open, as the app gate
+  does, and the screen says so rather than letting anybody assume otherwise.
+- **Two people editing is told, not lost.** Every save carries the version it
+  read. A save against a version somebody has moved past is refused and the
+  screen reloads to show theirs — rare, and silently losing the broadcast one of
+  them thought they had posted is not how anybody should find out it happened.
+- **Nothing migrates behind your back.** A device holding admin data from before
+  this is offered a button that publishes it, with a count of what would go.
+  Publishing is a decision.
+
+The size of this is small on purpose: the whole shared document is about 11KB —
+six broadcasts, a house style, forty organisation entries — and a few kilobytes
+per template. Reads are cached at the endpoint, so a hundred people opening
+screens costs what one does rather than a hundred fetches of the same
+kilobytes.
+
 ## 0.16.1 — The marquee stops waiting
 
 The strip scrolled its messages off and then sat blank until the loop came

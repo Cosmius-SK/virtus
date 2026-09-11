@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BroadcastStrip } from '@/components/BroadcastStrip';
 import { setSettings } from '@/lib/admin/store';
+import { refusal } from '@/lib/shared/say';
 import { useSettings } from '@/lib/admin/use';
 import {
   ARCHIVE,
@@ -85,8 +86,17 @@ function Row({
   async function commit(on: boolean) {
     const next = { ...draft, on };
     setDraft(next);
-    await onWrite(next);
-    setSaid(savedMessage(next, [...all.filter((b) => b.id !== next.id), next], t));
+    try {
+      await onWrite(next);
+      setSaid(savedMessage(next, [...all.filter((b) => b.id !== next.id), next], t));
+    } catch (err) {
+      // A refusal has to be said, and said as itself. The alternative is the
+      // fault this panel already had once: a confirmation that does not read
+      // the state it confirms. "Saved" after a 403 is the same lie in a new
+      // place.
+      setDraft(draft);
+      setSaid(refusal(err));
+    }
   }
 
   const stored = phaseOf(item, t);
@@ -301,9 +311,19 @@ export function BroadcastPanel() {
   const open = active(list, t);
   const done = archived(list, t);
 
+  const [problem, setProblem] = useState<string | null>(null);
+
   async function write(next: Broadcast[]) {
-    await setSettings({ broadcasts: trim(next, t) });
-    reload();
+    try {
+      setProblem(null);
+      await setSettings({ broadcasts: trim(next, t) });
+      reload();
+    } catch (err) {
+      setProblem(refusal(err));
+      // Re-read, so the list on screen is what is actually stored rather than
+      // what this screen hoped to store.
+      reload();
+    }
   }
 
   const replace = (b: Broadcast) => write(list.map((x) => (x.id === b.id ? b : x)));
@@ -321,6 +341,8 @@ export function BroadcastPanel() {
         it is set by whoever deployed it, and it deliberately cannot be edited here — a control the
         people bound by it can switch off is not a control.
       </p>
+
+      {problem && <p className="mt-3 text-[12px] text-red-700">{problem}</p>}
 
       <div className="mt-5">
         <span className={LABEL}>What people see now</span>
