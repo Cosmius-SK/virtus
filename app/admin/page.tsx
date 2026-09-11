@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { TemplateBuilder, blankTemplate } from '@/components/admin/TemplateBuilder';
 import { TemplatePreview } from '@/components/TemplatePreview';
 import { allTemplates, removeTemplate, saveTemplate, setSettings } from '@/lib/admin/store';
+import { BroadcastStrip } from '@/components/BroadcastStrip';
+import { EMPTY, TONES, isShowing, savedMessage, type Banner } from '@/lib/admin/banner';
 import { useSettings } from '@/lib/admin/use';
 import type { CustomTemplate } from '@/lib/db';
 import { FormatDefSchema } from '@/lib/formats/def-schema';
@@ -237,31 +239,48 @@ function download(def: FormatDef) {
   URL.revokeObjectURL(href);
 }
 
-const TONES = [
-  { id: 'info', label: 'Notice' },
-  { id: 'warn', label: 'Warning' },
-  { id: 'alert', label: 'Urgent' },
-] as const;
-
+/**
+ * The broadcast strip, set here.
+ *
+ * The buttons say what they will do rather than showing a flag to be toggled.
+ * The version this replaces put a button reading "Hidden" in a row beside three
+ * tone chips, where it read as a fourth chip and as a status label rather than
+ * a control — so the ordinary path (type a message, press Save) stored it
+ * switched off, showed nothing, and said "Saved. It is at the top of the page."
+ *
+ * Every part of that was avoidable, and the general lesson is worth more than
+ * the fix: a state flag beside things that are not state flags will be read as
+ * one of them, and a confirmation that does not read the state it is confirming
+ * will eventually lie.
+ */
 function Broadcast() {
   const { settings, reload } = useSettings();
-  const banner = settings?.banner ?? { on: false, text: '', tone: 'info' as const };
-  const [draft, setDraft] = useState(banner);
+  const [draft, setDraft] = useState<Banner>(EMPTY);
   const [loaded, setLoaded] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+  const live = settings?.banner;
 
   useEffect(() => {
     if (settings !== undefined && !loaded) {
-      setDraft(settings.banner ?? { on: false, text: '', tone: 'info' });
+      setDraft(settings.banner ?? EMPTY);
       setLoaded(true);
     }
   }, [settings, loaded]);
 
-  async function save() {
-    await setSettings({ banner: draft });
-    setSaved(true);
+  const edit = (part: Partial<Banner>) => {
+    setDraft((d) => ({ ...d, ...part }));
+    setSaid(null);
+  };
+
+  async function commit(on: boolean) {
+    const next = { ...draft, on };
+    setDraft(next);
+    await setSettings({ banner: next });
+    setSaid(savedMessage(next));
     reload();
   }
+
+  const empty = !draft.text.trim();
 
   return (
     <div className="max-w-2xl">
@@ -282,60 +301,97 @@ function Broadcast() {
         <textarea
           value={draft.text}
           rows={2}
-          onChange={(e) => {
-            setDraft({ ...draft, text: e.target.value });
-            setSaved(false);
-          }}
+          onChange={(e) => edit({ text: e.target.value })}
           placeholder="Trial run — do not enter confidential data."
           className="mt-1.5 w-full resize-y rounded border border-line px-3 py-2 text-[13px] leading-relaxed text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
         />
       </label>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {TONES.map((tone) => (
-          <button
-            key={tone.id}
-            type="button"
-            onClick={() => {
-              setDraft({ ...draft, tone: tone.id });
-              setSaved(false);
-            }}
-            className={`rounded border px-2.5 py-1 text-xs transition ${
-              draft.tone === tone.id
-                ? 'border-accent bg-accent text-white'
-                : 'border-line text-ink60 hover:border-accent'
-            }`}
-          >
-            {tone.label}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => {
-            setDraft({ ...draft, on: !draft.on });
-            setSaved(false);
-          }}
-          className={`ml-2 rounded border px-2.5 py-1 text-xs transition ${
-            draft.on ? 'border-accent bg-accent text-white' : 'border-line text-ink60 hover:border-accent'
-          }`}
-        >
-          {draft.on ? 'Showing' : 'Hidden'}
-        </button>
+      <div className="mt-3">
+        <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
+          How it should read
+        </span>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {TONES.map((tone) => (
+            <button
+              key={tone.id}
+              type="button"
+              onClick={() => edit({ tone: tone.id })}
+              className={`rounded border px-2.5 py-1 text-xs transition ${
+                draft.tone === tone.id
+                  ? 'border-accent bg-accent text-white'
+                  : 'border-line text-ink60 hover:border-accent'
+              }`}
+            >
+              {tone.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={save}
-          className="rounded bg-accent px-4 py-2 text-[13px] font-medium text-white transition hover:bg-accentDark"
-        >
-          Save
-        </button>
-        {saved && <span className="text-[12px] text-ink40">Saved. It is at the top of the page.</span>}
+      {/* The real strip, not something like it. */}
+      <div className="mt-5">
+        <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink40">
+          What people will see
+        </span>
+        <div className="mt-1.5">
+          {empty ? (
+            <p className="rounded border border-dashed border-line px-3 py-2.5 text-[12.5px] text-ink40">
+              Nothing yet — write a message above.
+            </p>
+          ) : (
+            <BroadcastStrip banner={draft} inset />
+          )}
+        </div>
       </div>
+
+      {/* The buttons say what pressing them does. There is no flag to find. */}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        {isShowing(live) ? (
+          <>
+            <button
+              type="button"
+              disabled={empty}
+              onClick={() => void commit(true)}
+              className="rounded bg-accent px-4 py-2 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:opacity-40"
+            >
+              Save changes
+            </button>
+            <button
+              type="button"
+              onClick={() => void commit(false)}
+              className="text-[13px] text-ink60 transition hover:text-red-700"
+            >
+              Stop showing it
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={empty}
+              onClick={() => void commit(true)}
+              className="rounded bg-accent px-4 py-2 text-[13px] font-medium text-white transition hover:bg-accentDark disabled:opacity-40"
+            >
+              Show this banner
+            </button>
+            <button
+              type="button"
+              disabled={empty}
+              onClick={() => void commit(false)}
+              className="text-[13px] text-ink60 transition hover:text-ink disabled:opacity-40"
+            >
+              Save without showing
+            </button>
+          </>
+        )}
+      </div>
+
+      {said && <p className="mt-3 text-[12px] text-ink60">{said}</p>}
     </div>
   );
 }
+
 
 function HouseStyle() {
   const { settings, reload } = useSettings();

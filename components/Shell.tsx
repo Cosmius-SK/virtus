@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Mark } from './Logo';
+import { BroadcastStrip } from './BroadcastStrip';
+import { isShowing } from '@/lib/admin/banner';
 import { useSettings } from '@/lib/admin/use';
 
 /**
@@ -42,11 +44,6 @@ const NAV = [
  * the whole point; merging them would make the governance line something an
  * admin can quietly rewrite.
  */
-const TONES = {
-  info: 'border-line bg-lineSoft text-ink80',
-  warn: 'border-amber-300 bg-amber-50 text-amber-900',
-  alert: 'border-red-300 bg-red-50 text-red-900',
-} as const;
 
 export function Shell({
   children,
@@ -143,13 +140,7 @@ export function Shell({
         </div>
       )}
 
-      {banner?.on && banner.text.trim() && (
-        <div className={`border-b ${TONES[banner.tone]}`} role="status">
-          <p className="mx-auto w-full max-w-6xl px-4 py-2 text-[12.5px] leading-relaxed sm:px-6">
-            {banner.text}
-          </p>
-        </div>
-      )}
+      {isShowing(banner) && <BroadcastStrip banner={banner} />}
 
       <main className="flex-1">{children}</main>
 

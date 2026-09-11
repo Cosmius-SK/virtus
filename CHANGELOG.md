@@ -3,6 +3,28 @@
 The changelog is the single source of release notes. It is written before
 shipping and parsed at build time by `next.config.mjs`. There is no second copy.
 
+## 0.15.1 — The broadcast that said it was up
+
+A message typed into the admin broadcast panel and saved did not appear, and
+the panel said "Saved. It is at the top of the page." That sentence was false,
+and being false is worse than the banner not showing: it sends somebody away
+believing the notice is up.
+
+- **The control is now the action.** The on/off toggle sat in a row beside the
+  three tone chips, so it read as a fourth chip — a label describing a state
+  rather than a button changing one. It has been replaced by buttons named for
+  what they do: **Show this banner**, **Save without showing**, **Save changes**,
+  **Stop showing it**. What the primary button says depends on whether a message
+  is currently up.
+- **What people will see is on the screen.** The panel renders the live strip
+  underneath the fields, using the same component the frame uses. A preview that
+  is a second implementation is a preview that can disagree with the product;
+  this one cannot.
+- **The confirmation reads the state it confirms.** `savedMessage()` in
+  `lib/admin/banner.ts` is derived from the saved record — no message, saved and
+  not shown, or up on every screen. `test/banner.test.ts` guards it, and
+  `isShowing()` is the one predicate deciding whether a strip appears anywhere.
+
 ## 0.15.0 — Something to show somebody
 
 Virtus now has three things a person outside the team can look at without an

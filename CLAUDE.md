@@ -105,6 +105,19 @@ things stay separately readable, and a squash welds their messages into one.
 ran them. Where a guard is the point of the change, break it on purpose, watch
 the test go red, and put it back — then say so in the message.
 
+**Walk the path a person takes, not the path you designed.** The broadcast
+banner was verified twice and shipped broken twice. The second time, the check
+passed because the script set the state explicitly before saving — which nobody
+does. Someone types a message and presses the obvious button. Drive a change
+from an empty screen, in the order a person meets it, and only then from the
+states you had in mind.
+
+**A confirmation that does not read the state it confirms will eventually lie.**
+"Saved. It is at the top of the page." was a constant string; the record said
+`on: false`. A sentence about what happened is derived from what happened, or it
+is decoration — and a false one is worse than none, because it stops the person
+checking. Where such a sentence exists, it gets a test.
+
 ## Shape conventions
 
 Three shapes read their `support` list by convention. Every convention must
@@ -157,6 +170,7 @@ A format declares its `outputs` (`pptx`, `docx`, `pdf`) and its `layout`
 | `lib/brand.ts` | **Virtus's own** palette — what the product itself looks like. Never the same thing as the line above, and never merged with it. |
 | `components/Logo.tsx`, `app/icon.svg` | The mark. One path, shared by both, so the tab and the header cannot diverge. |
 | `components/Shell.tsx` | Header, navigation and the classification line. Every page is inside it. |
+| `components/BroadcastStrip.tsx`, `lib/admin/banner.ts` | The one strip, drawn identically by the frame and by the admin preview, and the one predicate deciding whether it shows. A preview that is a second implementation is one that can disagree with the product. |
 | `components/TemplatePreview.tsx` | A template's preview, drawn from its own sections. Never a screenshot — a screenshot is wrong the first time a section moves. |
 | `lib/ai/provider.ts` | The only place that knows the provider, endpoint, key and model. |
 | `lib/org/` | What the organisation knows about itself (§3). |
@@ -199,6 +213,9 @@ still opens, it is just wrong, and it has already been sent.
   palette that did not come from `master.ts`. Both fail silently — a malformed
   template still produces a file and an unapplied house style still produces a
   file — so every assertion there is paired.
+- `test/banner.test.ts` covers the one sentence the admin space says about
+  what it just did. It is there because that sentence was once a constant and
+  was therefore sometimes false.
 - `test/org.test.ts`, `test/friendly.test.ts`, `test/pricing.test.ts`,
   `test/gate.test.ts` cover their own small rules.
 
